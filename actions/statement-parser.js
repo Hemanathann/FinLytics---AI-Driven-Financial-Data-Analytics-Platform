@@ -513,100 +513,133 @@ function guessCategory(desc, type) {
 // Maps noisy bank descriptions → clean display names
 const MERCHANT_MAP = [
   // Streaming
-  [/netflix/i,        "Netflix"],
-  [/spotify/i,        "Spotify"],
-  [/disney[+\s*plus]/i,"Disney+"],
-  [/hotstar/i,        "Disney+ Hotstar"],
-  [/amazon\s*prime/i, "Amazon Prime"],
-  [/youtube\s*premium/i,"YouTube Premium"],
-  [/apple\s*music/i,  "Apple Music"],
-  [/apple\s*icloud/i, "Apple iCloud"],
-  [/apple\s*tv/i,     "Apple TV+"],
-  [/hbo\s*max/i,      "HBO Max"],
-  [/crunchyroll/i,    "Crunchyroll"],
-  [/sony\s*liv/i,     "Sony LIV"],
-  [/zee\s*5/i,        "ZEE5"],
-  [/jio\s*cinema/i,   "JioCinema"],
-  [/sun\s*nxt/i,      "Sun NXT"],
-  [/dazn/i,           "DAZN"],
+  [/netflix/i,        "Netflix",          "entertainment"],
+  [/spotify/i,        "Spotify",          "entertainment"],
+  [/disney[+\s*plus]/i,"Disney+",          "entertainment"],
+  [/hotstar/i,        "Disney+ Hotstar",  "entertainment"],
+  [/amazon\s*prime/i, "Amazon Prime",     "entertainment"],
+  [/youtube\s*premium/i,"YouTube Premium",  "entertainment"],
+  [/apple\s*music/i,  "Apple Music",      "entertainment"],
+  [/apple\s*icloud/i, "Apple iCloud",     "bills"],
+  [/apple\s*tv/i,     "Apple TV+",        "entertainment"],
+  [/hbo\s*max/i,      "HBO Max",          "entertainment"],
+  [/crunchyroll/i,    "Crunchyroll",      "entertainment"],
+  [/sony\s*liv/i,     "Sony LIV",         "entertainment"],
+  [/zee\s*5/i,        "ZEE5",             "entertainment"],
+  [/jio\s*cinema/i,   "JioCinema",        "entertainment"],
+  [/sun\s*nxt/i,      "Sun NXT",          "entertainment"],
+  [/dazn/i,           "DAZN",             "entertainment"],
   // Food delivery
-  [/uber\s*eat/i,     "Uber Eats"],
-  [/deliveroo/i,      "Deliveroo"],
-  [/just\s*eat/i,     "Just Eat"],
-  [/doordash/i,       "DoorDash"],
-  [/zomato/i,         "Zomato"],
-  [/swiggy/i,         "Swiggy"],
-  [/dunzo/i,          "Dunzo"],
+  [/uber\s*eat/i,     "Uber Eats",        "food"],
+  [/deliveroo/i,      "Deliveroo",        "food"],
+  [/just\s*eat/i,     "Just Eat",         "food"],
+  [/doordash/i,       "DoorDash",         "food"],
+  [/zomato/i,         "Zomato",           "food"],
+  [/swiggy/i,         "Swiggy",           "food"],
+  [/dunzo/i,          "Dunzo",            "food"],
   // Groceries Ireland
-  [/tesco/i,          "Tesco"],
-  [/dunnes\s*store/i, "Dunnes Stores"],
-  [/aldi/i,           "Aldi"],
-  [/lidl/i,           "Lidl"],
-  [/supervalu/i,      "SuperValu"],
-  [/centra/i,         "Centra"],
-  [/spar/i,           "Spar"],
-  [/marks\s*(&|and)\s*spencer/i,"M&S"],
+  [/tesco/i,          "Tesco",            "groceries"],
+  [/dunnes\s*store/i, "Dunnes Stores",    "groceries"],
+  [/aldi/i,           "Aldi",             "groceries"],
+  [/lidl/i,           "Lidl",             "groceries"],
+  [/supervalu/i,      "SuperValu",        "groceries"],
+  [/centra/i,         "Centra",           "groceries"],
+  [/spar/i,           "Spar",             "groceries"],
+  [/marks\s*(&|and)\s*spencer/i,"M&S",              "groceries"],
   // Cafes / fast food
-  [/starbucks/i,      "Starbucks"],
-  [/costa\s*coffee/i, "Costa Coffee"],
-  [/mcdonalds|mcdonald/i,"McDonald's"],
-  [/subway/i,         "Subway"],
-  [/kfc/i,            "KFC"],
-  [/burger\s*king/i,  "Burger King"],
-  [/dominos|domino/i, "Domino's"],
-  [/papa\s*john/i,    "Papa John's"],
-  [/five\s*guys/i,    "Five Guys"],
-  [/nandos|nando/i,   "Nando's"],
+  [/starbucks/i,      "Starbucks",        "food"],
+  [/costa\s*coffee/i, "Costa Coffee",     "food"],
+  [/mcdonalds|mcdonald/i,"McDonald's",       "food"],
+  [/subway/i,         "Subway",           "food"],
+  [/kfc/i,            "KFC",              "food"],
+  [/burger\s*king/i,  "Burger King",      "food"],
+  [/dominos|domino/i, "Domino's",         "food"],
+  [/papa\s*john/i,    "Papa John's",      "food"],
+  [/five\s*guys/i,    "Five Guys",        "food"],
+  [/nandos|nando/i,   "Nando's",          "food"],
   // Transport Ireland
-  [/leap\s*card|leapcard/i,"Leap Card"],
-  [/dublin\s*bus/i,   "Dublin Bus"],
-  [/luas/i,           "Luas"],
-  [/iarnrod|irish\s*rail/i,"Irish Rail"],
-  [/bus\s*eireann/i,  "Bus Éireann"],
-  [/uber/i,           "Uber"],
-  [/bolt\s*(?!energy)/i,"Bolt"],
-  [/free\s*now/i,     "Free Now"],
-  [/ryanair/i,        "Ryanair"],
-  [/aer\s*lingus/i,   "Aer Lingus"],
+  [/leap\s*card|leapcard/i,"Leap Card",        "transportation"],
+  [/dublin\s*bus/i,   "Dublin Bus",       "transportation"],
+  [/luas/i,           "Luas",             "transportation"],
+  [/iarnrod|irish\s*rail/i,"Irish Rail",       "transportation"],
+  [/bus\s*eireann/i,  "Bus Éireann",      "transportation"],
+  [/uber/i,           "Uber",             "transportation"],
+  [/bolt\s*(?!energy)/i,"Bolt",             "transportation"],
+  [/free\s*now/i,     "Free Now",         "transportation"],
+  [/ryanair/i,        "Ryanair",          "transportation"],
+  [/aer\s*lingus/i,   "Aer Lingus",       "transportation"],
   // Utilities Ireland
-  [/electric\s*ireland/i,"Electric Ireland"],
-  [/bord\s*gais/i,    "Bord Gáis"],
-  [/airtricity/i,     "Airtricity"],
-  [/irish\s*water|uisce\s*eireann/i,"Irish Water"],
-  [/eir\s*(?:broadband|fibre)?/i,"Eir"],
-  [/virgin\s*media/i, "Virgin Media"],
-  [/sky\s*ireland/i,  "Sky Ireland"],
+  [/electric\s*ireland/i,"Electric Ireland",  "utilities"],
+  [/bord\s*gais/i,    "Bord Gáis",        "utilities"],
+  [/airtricity/i,     "Airtricity",       "utilities"],
+  [/irish\s*water|uisce\s*eireann/i,"Irish Water",      "utilities"],
+  [/eir\s*(?:broadband|fibre)?/i,"Eir",              "utilities"],
+  [/virgin\s*media/i, "Virgin Media",     "utilities"],
+  [/sky\s*ireland/i,  "Sky Ireland",      "utilities"],
   // India utilities
-  [/jio\s*fiber|jio\s*fibre/i,"JioFiber"],
-  [/airtel\s*(?:fiber|xstream)/i,"Airtel Fiber"],
-  [/tata\s*power/i,   "Tata Power"],
-  [/adani\s*electricity/i,"Adani Electricity"],
+  [/jio\s*fiber|jio\s*fibre/i,"JioFiber",         "utilities"],
+  [/airtel\s*(?:fiber|xstream)/i,"Airtel Fiber",     "utilities"],
+  [/tata\s*power/i,   "Tata Power",       "utilities"],
+  [/adani\s*electricity/i,"Adani Electricity","utilities"],
   // Shopping
-  [/amazon(?!\s*prime|\s*music|\s*pay)/i,"Amazon"],
-  [/flipkart/i,       "Flipkart"],
-  [/myntra/i,         "Myntra"],
-  [/asos/i,           "ASOS"],
-  [/zara/i,           "Zara"],
-  [/h\s*&\s*m|h\s*and\s*m/i,"H&M"],
-  [/penneys|primark/i,"Penneys / Primark"],
-  [/ikea/i,           "IKEA"],
+  [/amazon(?!\s*prime|\s*music|\s*pay)/i,"Amazon",           "shopping"],
+  [/flipkart/i,       "Flipkart",         "shopping"],
+  [/myntra/i,         "Myntra",           "shopping"],
+  [/asos/i,           "ASOS",             "shopping"],
+  [/zara/i,           "Zara",             "shopping"],
+  [/h\s*&\s*m|h\s*and\s*m/i,"H&M",              "shopping"],
+  [/penneys|primark/i,"Penneys / Primark","shopping"],
+  [/ikea/i,           "IKEA",             "shopping"],
   // SaaS / tools
-  [/notion/i,         "Notion"],
-  [/figma/i,          "Figma"],
-  [/github/i,         "GitHub"],
-  [/dropbox/i,        "Dropbox"],
-  [/adobe/i,          "Adobe CC"],
-  [/canva/i,          "Canva"],
-  [/slack/i,          "Slack"],
-  [/zoom/i,           "Zoom"],
-  [/microsoft\s*365/i,"Microsoft 365"],
-  [/google\s*one/i,   "Google One"],
+  [/notion/i,         "Notion",           "bills"],
+  [/figma/i,          "Figma",            "bills"],
+  [/github/i,         "GitHub",           "bills"],
+  [/dropbox/i,        "Dropbox",          "bills"],
+  [/adobe/i,          "Adobe CC",         "bills"],
+  [/canva/i,          "Canva",            "bills"],
+  [/slack/i,          "Slack",            "bills"],
+  [/zoom/i,           "Zoom",             "bills"],
+  [/microsoft\s*365/i,"Microsoft 365",   "bills"],
+  [/google\s*one/i,   "Google One",       "bills"],
   // Banking & fintech
-  [/revolut/i,        "Revolut"],
-  [/wise|transferwise/i,"Wise"],
-  [/n26/i,            "N26"],
-  [/paypal/i,         "PayPal"],
-  [/stripe/i,         "Stripe"],
+  [/revolut/i,        "Revolut",          "bills"],
+  [/wise|transferwise/i,"Wise",             "currency-exchange"],
+  [/n26/i,             "N26",              "bills"],
+  [/paypal/i,         "PayPal",           "bills"],
+  [/stripe/i,         "Stripe",           "bills"],
+  // AIB / Irish bank common merchants
+  [/property\s*management/i,  "Property Management",  "housing"],
+  [/rtb\s*registration/i,     "RTB",                  "housing"],
+  [/daft\s*ireland/i,         "Daft.ie",              "housing"],
+  [/myhome\s*ireland/i,       "MyHome.ie",            "housing"],
+  [/boots\s*ireland/i,        "Boots",                "healthcare"],
+  [/lloyds\s*pharm/i,         "Lloyds Pharmacy",      "healthcare"],
+  [/energy\s*ireland/i,       "Electric Ireland",     "utilities"],
+  [/an\s*post/i,              "An Post",              "bills"],
+  [/penneys/i,                 "Penneys",              "shopping"],
+  [/woodies/i,                 "Woodies",              "shopping"],
+  [/harvey\s*norman/i,        "Harvey Norman",        "shopping"],
+  [/currys/i,                  "Currys",               "shopping"],
+  [/insomnia/i,                "Insomnia Coffee",      "food"],
+  [/pret\s*a\s*manger/i,     "Pret A Manger",        "food"],
+  [/greggs/i,                  "Greggs",               "food"],
+  [/supermacs/i,               "Supermacs",            "food"],
+  [/eddie\s*rockets/i,        "Eddie Rocket's",       "food"],
+  [/bunsen/i,                  "Bunsen",               "food"],
+  [/avoca/i,                   "Avoca",                "food"],
+  [/blank\s*panther|bord\s*bia/i,"Bord Bia",         "food"],
+  [/flyefit/i,                 "FLYEfit",              "healthcare"],
+  [/total\s*fitness/i,        "Total Fitness",        "healthcare"],
+  [/laya/i,                    "Laya Healthcare",      "insurance"],
+  [/vhi/i,                     "VHI",                  "insurance"],
+  [/irish\s*life/i,           "Irish Life",           "insurance"],
+  [/aib\s*(?:mortgage|loan)/i,"AIB Mortgage",         "housing"],
+  [/bank\s*of\s*ireland/i,   "Bank of Ireland",      "bills"],
+  [/permanent\s*tsb/i,        "Permanent TSB",        "bills"],
+  [/credit\s*union/i,         "Credit Union",         "bills"],
+  [/ireland\s*revenue/i,      "Revenue Commissioners","bills"],
+  [/revenue\s*commissioners/i,"Revenue Commissioners","bills"],
+  [/customs\s*ireland/i,      "Revenue",              "bills"],
   // Fuel Ireland
   [/topaz/i,          "Topaz"],
   [/applegreen/i,     "Applegreen"],
@@ -629,8 +662,8 @@ function cleanDescription(raw) {
   s = s.replace(/\d{1,2}[\s\-\/]?(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)/gi, "");
   s = s.replace(/\d{2}[\/-]\d{2}[\/-]\d{2,4}/g, "");
 
-  // Remove card number fragments (4 digit blocks)
-  s = s.replace(/\d{4}/g, "");
+  // Remove card number fragments (4 digit blocks) — but not years (2020-2030)
+  s = s.replace(/(?<![\d])(?!20[12]\d)\d{4}(?![\d])/g, "");
 
   // Remove phone numbers and country codes
   s = s.replace(/(00353|0044|001|\+353|\+44|\+1)\s*[\d\s]{6,}/g, "");
@@ -660,21 +693,26 @@ function categorise(desc, type) {
   const lower = desc.toLowerCase();
   const clean = cleanDescription(desc);
 
-  // Exact merchant map match = high confidence
-  for (const [pattern, name] of MERCHANT_MAP) {
+  // Pass 1: Exact merchant map match = high confidence
+  // MERCHANT_MAP entries carry their own category as 3rd element (fixes Topaz→transportation etc.)
+  for (const [pattern, name, merchantCat] of MERCHANT_MAP) {
     if (pattern.test(desc)) {
-      const cat = guessCategory(desc, type);
-      return { category: cat, confidence: "high", cleanName: name };
+      // Use merchant category if provided, else fall back to keyword scan
+      const cat = merchantCat || guessCategory(desc, type);
+      // Validate category is in VALID_CATEGORIES list
+      const validCat = VALID_CATEGORIES.includes(cat) ? cat
+        : (type === "INCOME" ? "other-income" : "other-expense");
+      return { category: validCat, confidence: "high", cleanName: name };
     }
   }
 
-  // Multi-word keyword match = medium confidence (more specific → more reliable)
+  // Pass 2: Multi-word keyword match = medium confidence
   for (const [cat, keywords] of KEYWORD_MAP) {
     const matched = keywords.find(kw => kw.includes(" ") && lower.includes(kw));
     if (matched) return { category: cat, confidence: "medium", cleanName: clean };
   }
 
-  // Single-word match with word-boundary check = low confidence
+  // Pass 3: Single-word with word-boundary = low confidence
   for (const [cat, keywords] of KEYWORD_MAP) {
     const matched = keywords.find(kw => !kw.includes(" ") && wordBoundary(lower, kw));
     if (matched) return { category: cat, confidence: "low", cleanName: clean };
@@ -722,6 +760,15 @@ function parseDate(str, preferUS = false) {
 
   // Mon DD, YYYY: Apr 11, 2025
   if (/^[A-Za-z]{3}\s+\d{1,2},?\s+\d{4}/.test(s)) return new Date(s);
+
+  // DD Mon YYYY: 11 Apr 2025 (SBI, some Indian/UK banks)
+  if (/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(s)) return new Date(s);
+
+  // DD.MM.YYYY: 11.04.2025 (European format)
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(s)) {
+    const [d, m, y] = s.split(".");
+    return new Date(`${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`);
+  }
 
   // DD/MM/YYYY or MM/DD/YYYY — ambiguous
   const parts = s.split(/[\/\-\.]/);
@@ -813,9 +860,17 @@ function parseCSV(text) {
 
     function parseAmount(raw) {
       if (!raw) return 0;
-      let s = raw.replace(/[, $€₹£]/g, "").trim();
+      let s = raw.replace(/[$€₹£]/g, "").trim();
       // Handle parentheses for negatives: (1234.56) → -1234.56
       if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
+      // Detect European format: 1.234,56 (period=thousands, comma=decimal)
+      // vs standard: 1,234.56 (comma=thousands, period=decimal)
+      const hasEurFmt = /^-?[\d.]+,[\d]{2}$/.test(s.trim()); // ends in ,XX
+      if (hasEurFmt) {
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else {
+        s = s.replace(/,/g, ""); // remove thousands commas
+      }
       return parseFloat(s) || 0;
     }
     let debit  = c.debit  >= 0 ? parseAmount(cols[c.debit]  || "") : 0;
@@ -848,11 +903,28 @@ function parseCSV(text) {
       type = "EXPENSE"; amount = debit || credit;
     } else {
       // Extended income keyword fallback
-      const iw = ["salary","payroll","wages","dividend","bonus","cashback","refund","reward",
-        "upwork","fiverr","toptal","etf ","vanguard","interest credit","sip credit","fd interest",
-        "cr transfer","bank giro credit","chaps credit","faster payment received","neft cr",
-        "imps cr","standing order credit","incoming transfer","credit transfer","lodgment",
-        "lodgement","deposit received","money received","topup","top-up received"];
+      const iw = [
+        // Salary & employment
+        "salary","payroll","wages","pay credit","sal cr","sal credit","neft salary",
+        "imps salary","employer payment","direct credit",
+        // Investment income
+        "dividend","interest credit","sip credit","fd interest","ppf credit","epf credit",
+        "nsc interest","maturity credit","rd maturity","investment return",
+        // Freelance platforms
+        "upwork","fiverr","toptal","payoneer","stripe payment","wise received",
+        // Bonuses & rewards
+        "bonus","cashback","refund","reward","tax refund","insurance claim",
+        // Crypto/investment
+        "etf distribution","vanguard","trading profit","coinbase credit","binance credit",
+        // Transfer income keywords
+        "bank giro credit","bgc credit","chaps credit","bacs credit",
+        "faster payment received","sepa credit","sepa credit transfer",
+        "neft cr","imps cr","neft credit","imps credit",
+        "incoming transfer","credit transfer","inward transfer","received from",
+        "standing order credit","cr transfer","lodgment","lodgement",
+        "deposit received","money received","topup","top-up received",
+        "payment received","transfer in","funds received","giro credit",
+      ];
       type   = iw.some((w) => desc.toLowerCase().includes(w)) ? "INCOME" : "EXPENSE";
       amount = debit || credit;
     }
@@ -921,13 +993,18 @@ export async function bulkImportTransactions(transactions, accountId) {
       select: { date: true, amount: true, description: true },
     });
     const existingKeys = new Set(
-      existing.map(e => `${e.date.toISOString().split("T")[0]}_${Number(e.amount).toFixed(2)}_${e.description}`)
+      existing.map(e => {
+        const normDesc = (e.description||"").toLowerCase().replace(/\s+/g," ").trim().slice(0,100);
+        return `${e.date.toISOString().split("T")[0]}_${Number(e.amount).toFixed(2)}_${normDesc}`;
+      })
     );
 
     const toInsert  = [];
     const skipped   = [];
     for (const t of transactions) {
-      const key = `${new Date(t.date).toISOString().split("T")[0]}_${t.amount.toFixed(2)}_${t.description}`;
+      // Normalise description for better duplicate detection (handles whitespace diffs)
+      const normDesc = t.description.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 100);
+      const key = `${new Date(t.date).toISOString().split("T")[0]}_${t.amount.toFixed(2)}_${normDesc}`;
       if (existingKeys.has(key)) { skipped.push(t); continue; }
       toInsert.push(t);
     }
