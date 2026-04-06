@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const FEATURES = [
-  { icon:Brain,     color:"#378ADD", title:"Gemini AI Insights",    desc:"Natural language explanations of spending patterns. Get a personalised financial narrative every visit." },
+  { icon:Brain,     color:"#378ADD", title:"Groq AI Insights",     desc:"Natural language explanations of spending patterns. Get a personalised financial narrative every visit." },
   { icon:BarChart3, color:"#1D9E75", title:"10+ Analytics Charts",  desc:"Health score, anomaly detection, forecasting, heatmaps, category breakdowns and weekly trends." },
   { icon:FileText,  color:"#EF9F27", title:"Smart Bank Import",     desc:"Upload CSV from any bank. 1,145+ merchant keywords categorise every transaction in milliseconds." },
   { icon:Repeat2,   color:"#D4537E", title:"Subscription Tracker",  desc:"Auto-detect Netflix, Spotify, Hotstar, Disney+ and 25+ streaming services from your transaction history." },
@@ -20,7 +20,7 @@ const FEATURES = [
 const HOW = [
   { n:"01", t:"Create your accounts",   d:"Add your bank accounts — current, savings, investment. Each with its own currency: EUR for Ireland, INR for India, USD/GBP for US/UK." },
   { n:"02", t:"Import your statement",  d:"Download a CSV from your bank portal. FinLytics parses 1,145+ merchant keywords and categorises every transaction instantly — no AI quota needed." },
-  { n:"03", t:"Get analytics insights", d:"Gemini AI writes a personalised financial narrative. Charts, health scores and forecasts update in real time with your actual data." },
+  { n:"03", t:"Get analytics insights", d:"Groq AI writes a personalised financial narrative. Charts, health scores and forecasts update in real time with your actual data." },
 ];
 
 const STATS = [
@@ -34,10 +34,9 @@ const TRUST = [
   {icon:Lock,     t:"Clerk Auth",    s:"Secure sign-in"},
   {icon:Globe,    t:"Global banks",  s:"IE · IN · GB · US"},
   {icon:Activity, t:"Real-time",     s:"Instant categorisation"},
-  {icon:Brain,    t:"Gemini AI",     s:"Google AI powered"},
+  {icon:Brain,    t:"Groq AI",       s:"Llama 3.3 powered"},
 ];
 
-// ── Logo mark inline ──────────────────────────────────────────
 function LogoMark({ size = 48 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
@@ -62,8 +61,6 @@ export default async function LandingPage() {
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-24 pb-20 overflow-hidden">
-
-        {/* Background effects */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.05]"
             style={{backgroundImage:"radial-gradient(circle, #1d4ed8 1px, transparent 1px)",backgroundSize:"32px 32px"}}/>
@@ -73,8 +70,6 @@ export default async function LandingPage() {
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto text-center">
-
-          {/* Brand badge */}
           <div className="inline-flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2 mb-10 shadow-sm">
             <LogoMark size={28}/>
             <span className="text-base font-black tracking-tight">
@@ -85,7 +80,6 @@ export default async function LandingPage() {
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Finance · Data · Analytics</span>
           </div>
 
-          {/* Headline */}
           <h1 className="text-5xl sm:text-7xl lg:text-[96px] font-black leading-[0.92] tracking-tight mb-7">
             <span className="text-slate-900 dark:text-white">Your finances,</span>
             <br/>
@@ -98,16 +92,14 @@ export default async function LandingPage() {
 
           <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-3 leading-relaxed">
             FinLytics turns your bank statement into a full analytics dashboard —
-            AI categorisation, anomaly detection, spending forecasts and Gemini-powered insights,
+            AI categorisation, anomaly detection, spending forecasts and Groq-powered insights,
             all in one place.
           </p>
           <p className="text-sm text-slate-400 dark:text-slate-500 mb-10">
             Built for Ireland · India · UK · US · 4 currencies · Any bank
           </p>
 
-          {/* ── CTA — changes based on auth state ─────────────── */}
           {isSignedIn ? (
-            /* Signed IN — take them directly into the app */
             <div className="flex flex-wrap gap-3 justify-center mb-16">
               <Link href="/dashboard">
                 <button className="flex items-center gap-2.5 bg-gradient-to-r from-blue-700 to-teal-600 hover:from-blue-600 hover:to-teal-500 text-white font-black px-8 py-4 rounded-2xl transition-all hover:scale-[1.02] text-base shadow-2xl shadow-blue-500/25">
@@ -124,7 +116,6 @@ export default async function LandingPage() {
               </Link>
             </div>
           ) : (
-            /* Signed OUT — onboarding CTAs */
             <div className="flex flex-wrap gap-3 justify-center mb-16">
               <Link href="/sign-up">
                 <button className="group flex items-center gap-2.5 bg-gradient-to-r from-blue-700 to-teal-600 hover:from-blue-600 hover:to-teal-500 text-white font-black px-8 py-4 rounded-2xl transition-all hover:scale-[1.02] text-base shadow-2xl shadow-blue-500/25">
@@ -141,12 +132,9 @@ export default async function LandingPage() {
             </div>
           )}
 
-          {/* ── Dashboard preview mockup ──────────────────────── */}
           <div className="relative mx-auto max-w-4xl">
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white dark:from-[#09090B] to-transparent z-10 pointer-events-none"/>
             <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-900/8 dark:shadow-black/60">
-
-              {/* Browser chrome */}
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-5 py-3 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex gap-1.5">{["#ef4444","#f59e0b","#22c55e"].map(c=><div key={c} className="w-3 h-3 rounded-full" style={{background:c}}/>)}</div>
                 <div className="flex items-center gap-2 flex-1 bg-white dark:bg-slate-800 rounded-lg py-1 px-3 mx-8">
@@ -154,11 +142,7 @@ export default async function LandingPage() {
                   <span className="text-xs text-slate-400">finlytics.app/dashboard</span>
                 </div>
               </div>
-
-              {/* App body */}
               <div className="bg-slate-50 dark:bg-[#0D0D12] p-4 sm:p-5 space-y-3">
-
-                {/* Balance hero */}
                 <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{background:"linear-gradient(135deg, #0C1F3F 0%, #0F3460 50%, #0C1F3F 100%)"}}>
                   <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 85% 50%, #5DCAA5 1px, transparent 1px)",backgroundSize:"18px 18px"}}/>
                   <div className="relative flex items-center justify-between flex-wrap gap-4">
@@ -177,14 +161,12 @@ export default async function LandingPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Stat row */}
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    {l:"Net Worth",     v:"€127K",  g:"#0C1F3F",  t:"#378ADD"},
-                    {l:"Budget",        v:"68% used",g:"#1A0035",  t:"#7F77DD"},
-                    {l:"Subscriptions", v:"€63/mo",  g:"#1A0800",  t:"#EF9F27"},
-                    {l:"Health Score",  v:"82/100",  g:"#001A0D",  t:"#1D9E75"},
+                    {l:"Net Worth",     v:"€127K",   g:"#0C1F3F", t:"#378ADD"},
+                    {l:"Budget",        v:"68% used", g:"#1A0035", t:"#7F77DD"},
+                    {l:"Subscriptions", v:"€63/mo",   g:"#1A0800", t:"#EF9F27"},
+                    {l:"Health Score",  v:"82/100",   g:"#001A0D", t:"#1D9E75"},
                   ].map(s=>(
                     <div key={s.l} className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
                       <div className="w-6 h-6 rounded-lg mb-2" style={{background:s.g}}/>
@@ -193,22 +175,18 @@ export default async function LandingPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Nav tabs */}
                 <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1">
                   {["Overview","Transactions","Subscriptions","Insurance","Goals"].map((t,i)=>(
                     <div key={t} className={`flex-1 text-[9px] py-2 rounded-lg text-center font-semibold ${i===0?"bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm":"text-slate-400"}`}>{t}</div>
                   ))}
                 </div>
-
-                {/* Transactions */}
                 <div className="bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/50 divide-y divide-slate-100 dark:divide-slate-700/40 overflow-hidden">
                   {[
-                    {d:"Salary ACME Technologies",  c:"salary",        a:"+€4,250",  col:"#1D9E75"},
-                    {d:"Netflix.com",               c:"entertainment",  a:"-€15.99",  col:"#E24B4A"},
-                    {d:"Tesco Express Ranelagh",    c:"groceries",      a:"-€87.45",  col:"#EF9F27"},
-                    {d:"Vanguard ETF Distribution", c:"investments",    a:"+€125.00", col:"#378ADD"},
-                    {d:"Spotify Ireland Ltd",       c:"entertainment",  a:"-€9.99",   col:"#1DB954"},
+                    {d:"Salary ACME Technologies",  c:"salary",       a:"+€4,250",  col:"#1D9E75"},
+                    {d:"Netflix.com",               c:"entertainment", a:"-€15.99",  col:"#E24B4A"},
+                    {d:"Tesco Express Ranelagh",    c:"groceries",     a:"-€87.45",  col:"#EF9F27"},
+                    {d:"Vanguard ETF Distribution", c:"investments",   a:"+€125.00", col:"#378ADD"},
+                    {d:"Spotify Ireland Ltd",       c:"entertainment", a:"-€9.99",   col:"#1DB954"},
                   ].map((r,i)=>(
                     <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
                       <div className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-xs font-black shrink-0" style={{background:r.col+"22",color:r.col,border:`1px solid ${r.col}33`}}>{r.d[0]}</div>
@@ -227,7 +205,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── STATS ────────────────────────────────────────────── */}
-      <section className="py-14 border-y border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40" >
+      <section className="py-14 border-y border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
         <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
           {STATS.map(s=>(
             <div key={s.v}>
@@ -254,8 +232,7 @@ export default async function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {FEATURES.map(f=>(
               <div key={f.title} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-700 transition-all group">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
-                  style={{background:`${f.color}18`}}>
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{background:`${f.color}18`}}>
                   <f.icon className="h-5 w-5" style={{color:f.color}}/>
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5">{f.title}</h3>
@@ -270,12 +247,10 @@ export default async function LandingPage() {
       <section className="py-20 px-4 bg-slate-50 dark:bg-slate-900/40">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
-            {/* Left — copy */}
             <div>
               <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 rounded-full px-4 py-1.5 text-sm text-blue-600 dark:text-blue-300 font-medium mb-6">
                 <Brain className="h-4 w-4"/>
-                FinLytics AI · Powered by Gemini
+                FinLytics AI · Powered by Groq
               </div>
               <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-5">
                 Ask your data<br/>
@@ -286,9 +261,9 @@ export default async function LandingPage() {
               </p>
               <div className="space-y-3">
                 {[
-                  {q:"Where am I overspending the most?",      a:"Your top category is Food & Dining at €342/mo — 28% of expenses."},
-                  {q:"What's my savings rate this month?",     a:"You saved 18.4% this month. That's up from 14% last month — great progress."},
-                  {q:"Am I on track for my holiday goal?",     a:"You need €180/mo more to hit your target by July. Currently contributing €220 — you're on track!"},
+                  {q:"Where am I overspending the most?",     a:"Your top category is Food & Dining at €342/mo — 28% of expenses."},
+                  {q:"What is my savings rate this month?",   a:"You saved 18.4% this month. That is up from 14% last month — great progress."},
+                  {q:"Am I on track for my holiday goal?",    a:"You need €180/mo more to hit your target by July. Currently contributing €220 — you are on track!"},
                 ].map((item, i) => (
                   <div key={i} className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1.5 flex items-center gap-2">
@@ -300,12 +275,8 @@ export default async function LandingPage() {
                 ))}
               </div>
             </div>
-
-            {/* Right — chatbot UI preview */}
             <div className="relative">
               <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-900/8 dark:shadow-black/40 bg-white dark:bg-slate-900">
-
-                {/* Chat header */}
                 <div className="flex items-center gap-3 px-4 py-3.5 text-white" style={{background:"linear-gradient(135deg, #1851a3 0%, #0f6e56 100%)"}}>
                   <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
                     <Sparkles className="h-5 w-5"/>
@@ -314,30 +285,25 @@ export default async function LandingPage() {
                     <p className="font-bold text-sm">FinLytics AI</p>
                     <p className="text-xs text-white/70 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"/>
-                      Online · Gemini 1.5 Flash
+                      Online · Groq · Llama 3.3
                     </p>
                   </div>
                   <div className="flex gap-1.5">{["#ef4444","#f59e0b","#22c55e"].map(col=><div key={col} className="w-3 h-3 rounded-full opacity-60" style={{background:col}}/>)}</div>
                 </div>
-
-                {/* Chat messages */}
                 <div className="p-4 space-y-3 bg-slate-50 dark:bg-slate-900/50">
-                  {/* AI message */}
                   <div className="flex gap-2.5">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:"linear-gradient(135deg, #1851a3, #0f6e56)"}}>
                       <Brain className="h-3.5 w-3.5 text-white"/>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 max-w-[85%]">
-                      Hi! I'm FinLytics AI. I have access to your real transaction data. Ask me anything about your finances.
+                      Hi! I&apos;m FinLytics AI. I have access to your real transaction data. Ask me anything about your finances.
                     </div>
                   </div>
-                  {/* User message */}
                   <div className="flex gap-2.5 justify-end">
                     <div className="bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white max-w-[80%]">
                       Where am I overspending?
                     </div>
                   </div>
-                  {/* AI response */}
                   <div className="flex gap-2.5">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{background:"linear-gradient(135deg, #1851a3, #0f6e56)"}}>
                       <Brain className="h-3.5 w-3.5 text-white"/>
@@ -356,8 +322,6 @@ export default async function LandingPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Input bar */}
                 <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900">
                   <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2.5 text-sm text-slate-400">
                     Ask about your finances...
@@ -367,8 +331,6 @@ export default async function LandingPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Floating badge */}
               <div className="absolute -bottom-4 -right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 shadow-xl flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"/>
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Available on every page</span>
@@ -391,10 +353,7 @@ export default async function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
             {HOW.map(h=>(
               <div key={h.n} className="relative">
-                <p className="text-8xl font-black leading-none mb-4 select-none"
-                  style={{WebkitTextStroke:"1px #e2e8f0",color:"transparent"}}>
-                  {h.n}
-                </p>
+                <p className="text-8xl font-black leading-none mb-4 select-none" style={{WebkitTextStroke:"1px #e2e8f0",color:"transparent"}}>{h.n}</p>
                 <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">{h.t}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{h.d}</p>
               </div>
@@ -421,7 +380,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-
       {/* ── AI CHATBOT TEASER ──────────────────────────────── */}
       <section className="py-20 px-4 bg-slate-50 dark:bg-slate-900/40 border-y border-slate-100 dark:border-slate-800">
         <div className="max-w-4xl mx-auto">
@@ -429,7 +387,7 @@ export default async function LandingPage() {
             <div>
               <div className="inline-flex items-center gap-2 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded-full px-4 py-1.5 text-sm text-teal-700 dark:text-teal-300 font-medium mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"/>
-                AI Finance Advisor · Powered by Gemini
+                AI Finance Advisor · Powered by Groq
               </div>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
                 Ask anything about<br/>
@@ -441,7 +399,7 @@ export default async function LandingPage() {
               <ul className="space-y-2.5">
                 {[
                   "Where am I overspending the most?",
-                  "What\'s my current savings rate?",
+                  "What is my current savings rate?",
                   "How does my spending compare month to month?",
                   "Give me a full summary of my finances",
                 ].map(q => (
@@ -460,11 +418,8 @@ export default async function LandingPage() {
                 </Link>
               )}
             </div>
-
-            {/* Chatbot mockup */}
             <div className="relative">
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
-                {/* Header */}
                 <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-700 to-teal-600 text-white">
                   <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center">
                     <BarChart2 className="h-4 w-4 text-white"/>
@@ -473,11 +428,10 @@ export default async function LandingPage() {
                     <p className="font-bold text-sm"><span className="text-white/75">Fin</span>Lytics AI</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse"/>
-                      <span className="text-[11px] text-white/65">Online · Gemini 1.5 Flash</span>
+                      <span className="text-[11px] text-white/65">Online · Groq · Llama 3.3</span>
                     </div>
                   </div>
                 </div>
-                {/* Messages */}
                 <div className="p-4 space-y-3">
                   <div className="flex gap-2.5">
                     <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center shrink-0">
@@ -501,14 +455,13 @@ export default async function LandingPage() {
                     </div>
                     <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[85%] space-y-1">
                       <p>Your top 3 overspend areas this month:</p>
-                      <p>• <strong>Food & dining</strong> — €312 (32% of expenses)</p>
+                      <p>• <strong>Food &amp; dining</strong> — €312 (32% of expenses)</p>
                       <p>• <strong>Shopping</strong> — €189 (19%)</p>
                       <p>• <strong>Entertainment</strong> — €97 (10%)</p>
                       <p className="text-teal-600 dark:text-teal-400 font-medium">Cutting dining by 20% saves ~€62/month.</p>
                     </div>
                   </div>
                 </div>
-                {/* Input bar */}
                 <div className="px-3 pb-3 flex gap-2">
                   <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl px-4 py-2.5 text-xs text-slate-400">Ask about your finances...</div>
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center shrink-0">
@@ -516,7 +469,6 @@ export default async function LandingPage() {
                   </div>
                 </div>
               </div>
-              {/* Floating FAB preview */}
               <div className="absolute -bottom-4 -right-4 flex items-center gap-2.5 h-12 px-4 rounded-2xl bg-gradient-to-r from-blue-700 to-teal-600 text-white shadow-xl text-sm font-bold">
                 <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
                   <BarChart2 className="h-3.5 w-3.5"/>
@@ -532,22 +484,14 @@ export default async function LandingPage() {
       {/* ── CTA ──────────────────────────────────────────────── */}
       <section className="py-24 px-4">
         <div className="max-w-3xl mx-auto text-center">
-
-          <div className="flex justify-center mb-8">
-            <LogoMark size={56}/>
-          </div>
-
+          <div className="flex justify-center mb-8"><LogoMark size={56}/></div>
           <h2 className="text-4xl sm:text-6xl font-black leading-tight mb-6">
             <span className="text-slate-900 dark:text-white">Stop guessing</span><br/>
-            <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
-              start analysing.
-            </span>
+            <span className="bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">start analysing.</span>
           </h2>
-
           <p className="text-slate-500 dark:text-slate-400 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
             Import your first statement and get a complete analytics dashboard — health score, AI insights, forecasts and anomaly alerts — in under 60 seconds.
           </p>
-
           {isSignedIn ? (
             <div className="flex flex-wrap gap-3 justify-center">
               <Link href="/dashboard">
@@ -577,7 +521,6 @@ export default async function LandingPage() {
               </Link>
             </div>
           )}
-
           <p className="text-slate-400 text-sm mt-5">No credit card required · Works with any bank · Free forever</p>
         </div>
       </section>
@@ -594,7 +537,7 @@ export default async function LandingPage() {
               <p className="text-xs text-slate-400">Finance · Data · Analytics</p>
             </div>
           </div>
-          <p className="text-sm text-slate-400">Built with Next.js 15 · Gemini AI · Prisma · Clerk · © 2026</p>
+          <p className="text-sm text-slate-400">Built with Next.js 15 · Groq AI · Prisma · Clerk · &copy; 2026</p>
         </div>
       </footer>
 
