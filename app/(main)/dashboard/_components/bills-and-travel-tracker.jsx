@@ -14,12 +14,28 @@ import Link from "next/link";
 
 // ── Bill type config ───────────────────────────────────────────
 const BILL_TYPES = [
-  { id:"wifi",       label:"WiFi / Broadband", icon:Wifi,       color:"#378ADD", bg:"bg-blue-50 dark:bg-blue-950/50",    keywords:["broadband","wifi","fiber","eir","virgin media","vodafone home","pure telecom","siro","sky broadband","three home","act fibernet","jio fiber","airtel fiber"] },
-  { id:"electricity",label:"Electricity",      icon:Zap,        color:"#EF9F27", bg:"bg-amber-50 dark:bg-amber-950/50",  keywords:["electric ireland","airtricity","energia","prepay power","bord gais energy","tata power","bescom","msedcl","adani electricity","electricity"] },
-  { id:"mobile",     label:"Mobile / Phone",   icon:Smartphone, color:"#1D9E75", bg:"bg-emerald-50 dark:bg-emerald-950/50", keywords:["vodafone","three ireland","eir mobile","tesco mobile","48 mobile","jio","airtel","vi recharge","bsnl","t-mobile","at&t"] },
-  { id:"water",      label:"Water",            icon:Droplets,   color:"#06b6d4", bg:"bg-cyan-50 dark:bg-cyan-950/50",    keywords:["irish water","water bill","uisce eireann","bwssb","mcgm water","water rates"] },
-  { id:"gas",        label:"Gas",              icon:Flame,      color:"#f97316", bg:"bg-orange-50 dark:bg-orange-950/50",keywords:["bord gais","gas networks","flogas","british gas","mahanagar gas","indraprastha gas"] },
-  { id:"tv",         label:"TV / Cable",       icon:Tv,         color:"#7F77DD", bg:"bg-violet-50 dark:bg-violet-950/50",keywords:["sky tv","virgin media tv","tv licence","dish tv","tata sky","d2h","dstv"] },
+  { id:"wifi",       label:"WiFi / Broadband", icon:Wifi,       color:"#378ADD", bg:"bg-blue-50 dark:bg-blue-950/50",
+    keywords:["broadband","wifi","fiber","fibre","eir","virgin media","vodafone home","pure telecom","siro",
+              "sky broadband","three home","act fibernet","jio fiber","airtel fiber","clearstream","digiweb"] },
+  { id:"electricity",label:"Electricity",      icon:Zap,        color:"#EF9F27", bg:"bg-amber-50 dark:bg-amber-950/50",
+    keywords:["electric ireland","airtricity","energia","prepay power","bord gais energy","tata power",
+              "bescom","msedcl","adani electricity","electricity bill","tneb","bijli"] },
+  { id:"mobile",     label:"Mobile / Phone",   icon:Smartphone, color:"#1D9E75", bg:"bg-emerald-50 dark:bg-emerald-950/50",
+    keywords:["vodafone","three ireland","eir mobile","tesco mobile","48 mobile","lycamobile","lyca mobile",
+              "lebara","giffgaff","jio recharge","airtel recharge","vi recharge","bsnl","t-mobile","at&t",
+              "three topup","eir topup","48 topup"] },
+  { id:"water",      label:"Water",            icon:Droplets,   color:"#06b6d4", bg:"bg-cyan-50 dark:bg-cyan-950/50",
+    keywords:["irish water","water bill","uisce eireann","bwssb","mcgm water","water rates","water charge"] },
+  { id:"gas",        label:"Gas",              icon:Flame,      color:"#f97316", bg:"bg-orange-50 dark:bg-orange-950/50",
+    keywords:["bord gais","gas networks","flogas","british gas","mahanagar gas","indraprastha gas","gas bill"] },
+  { id:"tv",         label:"TV / Cable",       icon:Tv,         color:"#7F77DD", bg:"bg-violet-50 dark:bg-violet-950/50",
+    keywords:["sky tv","virgin media tv","tv licence","dish tv","tata sky","d2h","dstv","now tv"] },
+  { id:"digital",    label:"Digital / AI",     icon:CreditCard, color:"#6366f1", bg:"bg-indigo-50 dark:bg-indigo-950/50",
+    keywords:["anthropic","claude","openai","chatgpt","notion","github","dropbox","adobe","figma","canva",
+              "microsoft 365","google one","cursor","windsurf","jupyterventures","jupiter ventures"] },
+  { id:"rent",       label:"Rent / Housing",   icon:CreditCard, color:"#ef4444", bg:"bg-red-50 dark:bg-red-950/50",
+    keywords:["jupiter ventures","property management","rent","landlord","letting","rtb","hap payment",
+              "apartment","mortgage","leasehold","monthly rent"] },
 ];
 
 // ── Ireland Leap Card / transport keywords ─────────────────────
@@ -33,21 +49,50 @@ export function MonthlyBillsTracker({ transactions }) {
   const [form, setForm] = useState({ type:"wifi", name:"", amount:"", dueDay:"1", notes:"" });
 
   // Auto-detect bills from transactions (last 60 days)
-  const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // 6 months for full statement coverage
   const recent = (transactions||[]).filter(t => new Date(t.date) >= cutoff && t.type === "EXPENSE");
 
   const detectedBills = BILL_TYPES.map(bt => {
-    const matches = recent.filter(t =>
-      bt.keywords.some(k => (t.description||"").toLowerCase().includes(k))
-    );
+    const matches = recent.filter(t => {
+      // Only use description — cleanName is not stored in DB
+      const desc = (t.description || "").toLowerCase();
+      return bt.keywords.some(k => desc.includes(k));
+    });
     if (!matches.length) return null;
     const latest = matches.sort((a,b) => new Date(b.date)-new Date(a.date))[0];
     const avg = matches.reduce((s,t)=>s+Number(t.amount),0) / matches.length;
     return { ...bt, amount: avg, lastDate: latest.date, count: matches.length };
   }).filter(Boolean);
 
+  // Also detect any "bills" category transactions not matched by keywords above
+  const detectedKeywords = new Set(detectedBills.flatMap(b => b.keywords));
+  const extraBillTxns = recent.filter(t =>
+    t.category === "bills" &&
+    !BILL_TYPES.some(bt => bt.keywords.some(k => (t.description||"").toLowerCase().includes(k)))
+  );
+  const extraBills = Object.values(
+    extraBillTxns.reduce((acc, t) => {
+      // Use description only — cleanName not stored in DB
+      const d = (t.description || "").toLowerCase();
+      const key = d.slice(0, 30);
+      const icon = d.includes("mobile") || d.includes("phone") || d.includes("lyca") ? Smartphone
+        : d.includes("anthropic") || d.includes("claude") || d.includes("ai") ? CreditCard
+        : d.includes("rent") || d.includes("venture") || d.includes("management") ? CreditCard
+        : Smartphone;
+      if (!acc[key]) acc[key] = {
+        id: key, label: t.description, icon,
+        color:"#6366f1", bg:"bg-violet-50 dark:bg-violet-950/50",
+        amount: 0, count: 0, lastDate: t.date, keywords: [],
+      };
+      acc[key].amount += Number(t.amount);
+      acc[key].count++;
+      return acc;
+    }, {})
+  ).map(b => ({ ...b, amount: b.amount / b.count }));
+
   const allBills = [
     ...detectedBills.map(b => ({ ...b, source:"auto" })),
+    ...extraBills.map(b => ({ ...b, source:"auto" })),
     ...manualBills.map(b => ({ ...b, source:"manual" })),
   ];
   const totalMonthly = allBills.reduce((s,b) => s + (Number(b.amount)||0), 0);
@@ -83,14 +128,14 @@ export function MonthlyBillsTracker({ transactions }) {
       </div>
 
       {/* Auto-detected */}
-      {detectedBills.length > 0 && (
+      {allBills.filter(b => b.source === "auto").length > 0 && (
         <div>
           <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2">
             <CheckCircle2 className="h-3.5 w-3.5"/>
             Auto-detected from your transactions
           </p>
           <div className="space-y-2">
-            {detectedBills.map(b => (
+            {allBills.filter(b => b.source === "auto").map(b => (
               <div key={b.id} className={cn("flex items-center gap-3 p-3.5 rounded-2xl border", b.bg)}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{background:`${b.color}20`}}>
                   <b.icon className="h-5 w-5" style={{color:b.color}}/>

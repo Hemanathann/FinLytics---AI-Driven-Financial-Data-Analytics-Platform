@@ -19,10 +19,9 @@ export async function getAnalyticsData() {
     orderBy: { date: "asc" },
   });
 
-  const txns = transactions.map((t) => ({
-    ...t,
-    amount: Number(t.amount),
-  }));
+  const txns = transactions
+    .map((t) => ({ ...t, amount: Number(t.amount) }))
+    .filter((t) => t.amount > 0); // exclude zero-amount rows (e.g. Irish Stamp Duty)
 
   // ── Monthly summary (last 6 months) ─────────────────────────
   const monthlySummary = [];
@@ -118,17 +117,28 @@ export async function getAnalyticsData() {
 
   // ── Summary stats ─────────────────────────────────────────────
   const totalIncome = txns.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
-  const avgMonthlySpend = totalExpense / 6;
   const thisMonthStart = startOfMonth(now);
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
   const thisMonthExpense = txns
     .filter((t) => t.type === "EXPENSE" && new Date(t.date) >= thisMonthStart)
     .reduce((s, t) => s + t.amount, 0);
-  const lastMonthStart = startOfMonth(subMonths(now, 1));
-  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
   const lastMonthExpense = txns
     .filter(
       (t) =>
         t.type === "EXPENSE" &&
+        new Date(t.date) >= lastMonthStart &&
+        new Date(t.date) <= lastMonthEnd
+    )
+    .reduce((s, t) => s + t.amount, 0);
+
+  // lastMonthIncome: real income received in the previous calendar month
+  const lastMonthIncome = txns
+    .filter(
+      (t) =>
+        t.type === "INCOME" &&
         new Date(t.date) >= lastMonthStart &&
         new Date(t.date) <= lastMonthEnd
     )
@@ -139,6 +149,17 @@ export async function getAnalyticsData() {
       ? parseFloat((((thisMonthExpense - lastMonthExpense) / lastMonthExpense) * 100).toFixed(1))
       : 0;
 
+  // avgMonthlySpend: use only the 5 completed months (exclude current partial month)
+  // so the average isn't dragged down by a half-finished month
+  const completedMonthsExpense = txns
+    .filter((t) => t.type === "EXPENSE" && new Date(t.date) < thisMonthStart)
+    .reduce((s, t) => s + t.amount, 0);
+  const avgMonthlySpend = completedMonthsExpense / 5;
+
+  // Split transaction count into expense-only and income-only for clarity
+  const expenseCount = expenseTxns.length;
+  const incomeCount  = txns.filter((t) => t.type === "INCOME").length;
+
   return {
     monthlySummary,
     categoryBreakdown,
@@ -148,13 +169,19 @@ export async function getAnalyticsData() {
     heatmapData,
     topCategories: categoryBreakdown.slice(0, 5),
     stats: {
-      totalIncome: parseFloat(totalIncome.toFixed(2)),
-      totalExpense: parseFloat(totalExpense.toFixed(2)),
-      netSavings: parseFloat((totalIncome - totalExpense).toFixed(2)),
-      thisMonthExpense: parseFloat(thisMonthExpense.toFixed(2)),
-      avgMonthlySpend: parseFloat(avgMonthlySpend.toFixed(2)),
-      transactionCount: txns.length,
-      savingsRate: totalIncome > 0 ? parseFloat(((1 - totalExpense / totalIncome) * 100).toFixed(1)) : 0,
+      totalIncome:          parseFloat(totalIncome.toFixed(2)),
+      totalExpense:         parseFloat(totalExpense.toFixed(2)),
+      netSavings:           parseFloat((totalIncome - totalExpense).toFixed(2)),
+      thisMonthExpense:     parseFloat(thisMonthExpense.toFixed(2)),
+      lastMonthExpense:     parseFloat(lastMonthExpense.toFixed(2)),
+      lastMonthIncome:      parseFloat(lastMonthIncome.toFixed(2)),
+      lastMonthNet:         parseFloat((lastMonthIncome - lastMonthExpense).toFixed(2)),
+      avgMonthlySpend:      parseFloat(avgMonthlySpend.toFixed(2)),
+      // transactionCount = real expense + income transactions (no pocket/internal transfers)
+      transactionCount:     expenseCount + incomeCount,
+      expenseCount,
+      incomeCount,
+      savingsRate:          totalIncome > 0 ? parseFloat(((1 - totalExpense / totalIncome) * 100).toFixed(1)) : 0,
       monthOverMonthChange,
     },
   };

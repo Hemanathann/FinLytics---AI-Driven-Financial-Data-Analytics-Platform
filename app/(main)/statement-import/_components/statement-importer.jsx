@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { fmt } from "@/lib/currency-utils";
 import {
   FileSpreadsheet, Upload, CheckCircle2, ArrowRight, Loader2,
   Trash2, ChevronDown, ChevronUp, Info, LayoutGrid, List,
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { parseStatement, bulkImportTransactions } from "@/actions/statement-parser";
+import { trackStatementImported } from "@/lib/analytics-events";
 
 // ── Constants ─────────────────────────────────────────────────
 const BANKS = [
@@ -160,6 +162,7 @@ export function StatementImporter({ accounts }) {
   const [showBanks,    setShowBanks]    = useState(false);
   const [search,       setSearch]       = useState("");
   const [importResult, setImportResult] = useState(null);
+  const [closingBalance, setClosingBalance] = useState(null);
 
   // Custom category overrides — stored in state, applied on next import
   // Format: { [descriptionKey]: categoryString }
@@ -181,7 +184,12 @@ export function StatementImporter({ accounts }) {
     return txns.map(t => {
       const key = t.description.toLowerCase().slice(0, 40);
       const override = rules[key];
-      return override ? { ...t, category: override, confidence: "high" } : t;
+      // Only apply saved rule if parser was NOT high-confidence
+      // This prevents stale localStorage rules from overriding our accurate parser
+      if (override && t.confidence !== "high") {
+        return { ...t, category: override, confidence: "high" };
+      }
+      return t;
     });
   }, []);
 
@@ -202,11 +210,15 @@ export function StatementImporter({ accounts }) {
         r.onerror = () => rej(new Error("Could not read file"));
         r.readAsText(file, "utf-8");
       });
-      let result = await parseStatement(csvText);
+      const parseResult = await parseStatement(csvText);
+      // parseStatement may return array (old) or {transactions, finalBalance} (new)
+      let result = Array.isArray(parseResult) ? parseResult : (parseResult?.transactions || parseResult);
+      const csvClosingBalance = Array.isArray(parseResult) ? null : (parseResult?.finalBalance ?? null);
       if (!result?.length) { toast.error("No transactions found. Check your CSV format."); return; }
       // Apply any saved custom rules
       result = applyCustomRules(result, customRules);
       setTransactions(result);
+      setClosingBalance(csvClosingBalance);
       setSelected(result.map((_, i) => i));
       setStep("review");
       toast.success(`Found ${result.length} transactions`);
@@ -233,10 +245,19 @@ export function StatementImporter({ accounts }) {
     setImporting(true);
     try {
       const toImport = selected.map(i => transactions[i]);
-      const result = await bulkImportTransactions(toImport, accountId);
+      // Pass closing balance from CSV so account balance is accurate
+      const result = await bulkImportTransactions(toImport, accountId,
+        closingBalance !== null ? { closingBalance } : {}
+      );
       if (result?.success) {
         setImportResult(result);
         setStep("done");
+        // GA4: track successful import with transaction count
+        trackStatementImported({
+          count: result.count || 0,
+          skipped: result.skipped || 0,
+          lowConfidence: result.lowConfidence || 0,
+        });
         if (result.alreadyImported) {
           toast.info("All transactions already imported — no duplicates added");
         } else {
@@ -401,8 +422,8 @@ export function StatementImporter({ accounts }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label:"Selected",     value:`${selected.length} / ${transactions.length}`, color:"text-foreground" },
-          { label:"Income",       value:`+$${income.toFixed(2)}`,  color:"text-emerald-500" },
-          { label:"Expenses",     value:`-$${expense.toFixed(2)}`, color:"text-red-500" },
+          { label:"Income",       value:`+${fmt(income)}`,  color:"text-emerald-500" },
+          { label:"Expenses",     value:`-${fmt(expense)}`, color:"text-red-500" },
           { label:"Low confidence",value:lowConf.toString(), color:lowConf>0?"text-amber-500":"text-emerald-500" },
         ].map(s => (
           <div key={s.label} className="p-3.5 rounded-2xl border bg-card text-center">
@@ -580,14 +601,41 @@ export function StatementImporter({ accounts }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-center">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Income imported</p>
-            <p className="text-xl font-black text-emerald-600">+${r?.income?.toFixed(2) || "0.00"}</p>
+            <p className="text-xl font-black text-emerald-600">+{fmt(r?.income || 0)}</p>
           </div>
           <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-center">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Expenses imported</p>
-            <p className="text-xl font-black text-red-500">-${r?.expense?.toFixed(2) || "0.00"}</p>
+            <p className="text-xl font-black text-red-500">-{fmt(r?.expense || 0)}</p>
           </div>
         </div>
+        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 flex justify-between items-center">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Net balance</p>
+          <p className={`text-sm font-black ${(r?.net || 0) >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            {(r?.net || 0) >= 0 ? "+" : ""}{fmt(Math.abs(r?.net || 0))}
+          </p>
+        </div>
       </div>
+
+      {/* Pipeline Integrity Check */}
+      {r?.validation && (
+        <div className="p-4 rounded-xl border bg-slate-50 dark:bg-slate-900/30">
+          <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground mb-2.5">Pipeline Integrity Check</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+            <div className="flex justify-between"><span className="text-muted-foreground">Parsed from CSV</span><span className="font-semibold">{r.validation.parsed}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Inserted to DB</span><span className="font-semibold text-emerald-600">{r.validation.inserted}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Income rows</span><span className="font-semibold">{r.validation.incomeRows}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Expense rows</span><span className="font-semibold">{r.validation.expenseRows}</span></div>
+            {r.validation.duplicates > 0 && (
+              <div className="col-span-2 flex justify-between text-amber-600 dark:text-amber-400 pt-1 border-t">
+                <span>Duplicates skipped</span><span className="font-semibold">{r.validation.duplicates}</span>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2.5 leading-relaxed">
+            Analytics shows last 6 months — older transactions are stored but excluded from charts.
+          </p>
+        </div>
+      )}
 
       {/* Category breakdown pie */}
       {r?.categoryBreakdown && Object.keys(r.categoryBreakdown).length > 0 && (

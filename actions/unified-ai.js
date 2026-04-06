@@ -2,10 +2,32 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// ── Groq API helper ────────────────────────────────────────────
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
+
+async function callGroq(messages, maxTokens = 2048) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not set in .env.local");
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model:       GROQ_MODEL,
+      messages,
+      max_tokens:  maxTokens,
+      temperature: 0.7,
+      response_format: { type: "json_object" }, // enforce JSON output
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq error ${res.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "";
+}
 
 // ── Rule-based fallbacks (no API needed) ──────────────────────
 function buildRuleInsights(data) {
@@ -17,13 +39,13 @@ function buildRuleInsights(data) {
 
   if (topCategory) {
     const pct = ((topCategory[1] / totalExpense) * 100).toFixed(0);
-    insights.push({ text: `Your top spending category is ${topCategory[0]} at $${topCategory[1].toFixed(0)} (${pct}% of expenses).`, severity: pct > 40 ? "warning" : "info", icon: "pie" });
+    insights.push({ text: `Your top spending category is ${topCategory[0]} at €${topCategory[1].toFixed(0)} (${pct}% of expenses).`, severity: pct > 40 ? "warning" : "info", icon: "pie" });
   }
   if (momChange > 10) insights.push({ text: `Spending increased ${momChange.toFixed(0)}% vs last month — review recent purchases.`, severity: "warning", icon: "trend" });
   if (momChange < -10) insights.push({ text: `Great job! Spending dropped ${Math.abs(momChange).toFixed(0)}% vs last month.`, severity: "success", icon: "check" });
   if (savingsRate >= 20) insights.push({ text: `Strong savings rate of ${savingsRate}% — you're building wealth effectively.`, severity: "success", icon: "savings" });
   if (savingsRate < 10 && savingsRate >= 0) insights.push({ text: `Savings rate is only ${savingsRate}% — aim for 20% by reducing discretionary spend.`, severity: "warning", icon: "savings" });
-  if (recurringTotal > avgMonthly * 0.3) insights.push({ text: `Subscriptions use ${((recurringTotal/avgMonthly)*100).toFixed(0)}% of monthly spend ($${recurringTotal.toFixed(0)}) — audit unused services.`, severity: "warning", icon: "recurring" });
+  if (recurringTotal > avgMonthly * 0.3) insights.push({ text: `Subscriptions use ${((recurringTotal/avgMonthly)*100).toFixed(0)}% of monthly spend (€${recurringTotal.toFixed(0)}) — audit unused services.`, severity: "warning", icon: "recurring" });
   if (budget && totalExpense > budget * 0.9) insights.push({ text: `You've used ${((totalExpense/budget)*100).toFixed(0)}% of your monthly budget. Watch spending this month.`, severity: "warning", icon: "budget" });
 
   return insights;
@@ -34,11 +56,11 @@ function buildRuleSuggestions(byCategory, avgMonthly) {
   Object.entries(byCategory).forEach(([cat, total]) => {
     const monthly = total / 2;
     const pct = (monthly / avgMonthly) * 100;
-    if (cat === "food" && pct > 15) suggestions.push({ category: "food", suggestion: `Reducing dining out by 20% could save $${(monthly * 0.2).toFixed(0)}/month`, saving: parseFloat((monthly * 0.2).toFixed(2)), icon: "🍔", type: "reduce" });
-    if (cat === "entertainment" && monthly > 50) suggestions.push({ category: "entertainment", suggestion: `Trimming entertainment by 30% saves $${(monthly * 0.3).toFixed(0)}/month`, saving: parseFloat((monthly * 0.3).toFixed(2)), icon: "🎬", type: "reduce" });
-    if (cat === "shopping" && monthly > 150) suggestions.push({ category: "shopping", suggestion: `Cutting impulse shopping by 25% saves $${(monthly * 0.25).toFixed(0)}/month`, saving: parseFloat((monthly * 0.25).toFixed(2)), icon: "🛍️", type: "reduce" });
-    if (cat === "transportation" && monthly > 100) suggestions.push({ category: "transportation", suggestion: `Optimising transport could save $${(monthly * 0.15).toFixed(0)}/month`, saving: parseFloat((monthly * 0.15).toFixed(2)), icon: "🚗", type: "optimise" });
-    if (cat === "currency-exchange" && monthly > 50) suggestions.push({ category: "currency-exchange", suggestion: `Use Wise or Revolut instead of bank forex — could save $${(monthly * 0.4).toFixed(0)}/month in fees`, saving: parseFloat((monthly * 0.4).toFixed(2)), icon: "💱", type: "switch" });
+    if (cat === "food" && pct > 15) suggestions.push({ category: "food", suggestion: `Reducing dining out by 20% could save €${(monthly * 0.2).toFixed(2)}/month`, saving: parseFloat((monthly * 0.2).toFixed(2)), icon: "🍔", type: "reduce" });
+    if (cat === "entertainment" && monthly > 50) suggestions.push({ category: "entertainment", suggestion: `Trimming entertainment by 30% saves €${(monthly * 0.3).toFixed(0)}/month`, saving: parseFloat((monthly * 0.3).toFixed(2)), icon: "🎬", type: "reduce" });
+    if (cat === "shopping" && monthly > 150) suggestions.push({ category: "shopping", suggestion: `Cutting impulse shopping by 25% saves €${(monthly * 0.25).toFixed(0)}/month`, saving: parseFloat((monthly * 0.25).toFixed(2)), icon: "🛍️", type: "reduce" });
+    if (cat === "transportation" && monthly > 100) suggestions.push({ category: "transportation", suggestion: `Optimising transport could save €${(monthly * 0.15).toFixed(0)}/month`, saving: parseFloat((monthly * 0.15).toFixed(2)), icon: "🚗", type: "optimise" });
+    if (cat === "currency-exchange" && monthly > 50) suggestions.push({ category: "currency-exchange", suggestion: `Use Wise or Revolut instead of bank forex — could save €${(monthly * 0.4).toFixed(0)}/month in fees`, saving: parseFloat((monthly * 0.4).toFixed(2)), icon: "💱", type: "switch" });
   });
   return suggestions.slice(0, 4);
 }
@@ -58,43 +80,38 @@ function buildRuleBudget(byCategory, avgMonthlyIncome, totalExpense) {
     });
 }
 
-// ── Single unified AI call ─────────────────────────────────────
-async function callGeminiOnce(financialSummary) {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-001",
-    generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
-  });
+// ── Single unified AI call via Groq ───────────────────────────
+async function callGroqOnce(financialSummary) {
+  const systemMsg = `You are a personal finance advisor. Return ONLY valid JSON, no markdown, no explanation.`;
 
-  const prompt = `You are a personal finance advisor. Based on this financial data, return a JSON object with three fields.
-
-Financial data:
-- Monthly income: $${financialSummary.avgMonthlyIncome.toFixed(0)}
-- Monthly expenses: $${financialSummary.avgMonthly.toFixed(0)}
+  const userMsg = `Financial data for analysis:
+- Monthly income: €${financialSummary.avgMonthlyIncome.toFixed(0)}
+- Monthly expenses: €${financialSummary.avgMonthly.toFixed(0)}
 - Savings rate: ${financialSummary.savingsRate}%
-- Top category: ${financialSummary.topCategory?.[0] || "N/A"} ($${financialSummary.topCategory?.[1]?.toFixed(0) || 0}/mo)
-- Subscriptions: $${financialSummary.recurringTotal.toFixed(0)}/mo
+- Top category: ${financialSummary.topCategory?.[0] || "N/A"} (€${financialSummary.topCategory?.[1]?.toFixed(0) || 0}/mo)
+- Subscriptions: €${financialSummary.recurringTotal.toFixed(0)}/mo
 - Month-over-month change: ${financialSummary.momChange.toFixed(0)}%
-- Spending by category: ${Object.entries(financialSummary.byCategory).map(([k,v]) => `${k}: $${(v/2).toFixed(0)}/mo`).join(", ")}
+- Spending by category: ${Object.entries(financialSummary.byCategory).map(([k,v]) => `${k}: €${(v/2).toFixed(0)}/mo`).join(", ")}
 
-Return ONLY this JSON, no markdown:
+Return this exact JSON structure:
 {
-  "narrative": "2-3 sentence personalised insight using specific numbers. Second person. Specific and actionable.",
+  "narrative": "2-3 sentence personalised insight using the specific numbers above. Use second person. Be specific and actionable.",
   "aiSuggestions": [
-    {"suggestion": "specific actionable tip with dollar amount", "saving": 45.00, "icon": "💡", "category": "general"}
+    {"suggestion": "specific tip with euro amount based on their data", "saving": 45.00, "icon": "💡", "category": "general"},
+    {"suggestion": "second tip", "saving": 30.00, "icon": "🛒", "category": "groceries"},
+    {"suggestion": "third tip", "saving": 20.00, "icon": "💳", "category": "bills"}
   ],
-  "budgetNarrative": "1-2 sentence smart budget recommendation with specific numbers."
-}
+  "budgetNarrative": "1-2 sentence budget recommendation referencing their actual income and biggest overspend."
+}`;
 
-Rules:
-- narrative: specific to THEIR data, mention actual amounts
-- aiSuggestions: exactly 3 items, each with realistic saving amount based on their spending
-- budgetNarrative: reference their actual income and top overspending area
-- All amounts must be realistic relative to their data`;
+  const text = await callGroq([
+    { role: "system", content: systemMsg },
+    { role: "user",   content: userMsg },
+  ], 1024);
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text()
-    .replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-  return JSON.parse(text);
+  // Parse JSON — strip markdown fences if present
+  const clean = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+  return JSON.parse(clean);
 }
 
 // ── Main export ────────────────────────────────────────────────
@@ -159,18 +176,18 @@ export async function getAllAIInsights() {
   const ruleRecommendations = buildRuleBudget(byCategory, avgMonthlyIncome, totalExpense);
   const savingsTarget    = avgMonthlyIncome * 0.20;
 
-  // ── Single Gemini call (may fail gracefully) ───────────────
-  let narrative     = `Your spending over the last 3 months shows $${totalExpense.toFixed(0)} in expenses against $${totalIncome.toFixed(0)} in income — a savings rate of ${savingsRate}%.`;
+  // ── Single Groq call (may fail gracefully) ─────────────────
+  let narrative     = `Your spending over the last 3 months shows €${totalExpense.toFixed(0)} in expenses against €${totalIncome.toFixed(0)} in income — a savings rate of ${savingsRate}%.`;
   let aiSuggestions = [];
-  let budgetNarrative = avgMonthlyIncome > 0 ? `Based on your $${avgMonthlyIncome.toFixed(0)} monthly income, targeting 20% savings means keeping expenses under $${(avgMonthlyIncome * 0.8).toFixed(0)}/month.` : "";
+  let budgetNarrative = avgMonthlyIncome > 0 ? `Based on your €${avgMonthlyIncome.toFixed(0)} monthly income, targeting 20% savings means keeping expenses under €${(avgMonthlyIncome * 0.8).toFixed(0)}/month.` : "";
 
   try {
-    const aiResult = await callGeminiOnce(financialSummary);
+    const aiResult = await callGroqOnce(financialSummary);
     if (aiResult.narrative)       narrative       = aiResult.narrative;
     if (aiResult.aiSuggestions)   aiSuggestions   = aiResult.aiSuggestions.slice(0, 3);
     if (aiResult.budgetNarrative) budgetNarrative = aiResult.budgetNarrative;
   } catch (err) {
-    console.warn("Gemini unavailable, using rule-based insights:", err.message);
+    console.warn("Groq unavailable, using rule-based insights:", err.message);
     // Silently fall back — rule-based data already set above
   }
 

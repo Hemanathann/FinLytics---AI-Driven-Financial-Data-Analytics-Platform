@@ -18,7 +18,8 @@ export async function getHealthScore() {
   const threeMonthsAgo = startOfMonth(subMonths(now, 3));
 
   const transactions = await db.transaction.findMany({
-    where: { userId: user.id, date: { gte: threeMonthsAgo }, status: "COMPLETED", NOT: { category: "savings-goal-meta" } },
+    where: { userId: user.id, date: { gte: threeMonthsAgo }, status: "COMPLETED", NOT: { category: "savings-goal-meta" },
+          amount: { gt: 0 } },
     orderBy: { date: "asc" },
   });
 

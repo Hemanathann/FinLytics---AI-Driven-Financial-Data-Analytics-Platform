@@ -15,7 +15,7 @@ export async function getSpendingForecast() {
   // Get 6 months of data for the model
   const sixMonthsAgo = startOfMonth(subMonths(now, 5));
   const transactions = await db.transaction.findMany({
-    where: { userId: user.id, type: "EXPENSE", date: { gte: sixMonthsAgo }, status: "COMPLETED" },
+    where: { userId: user.id, type: "EXPENSE", date: { gte: sixMonthsAgo }, status: "COMPLETED", amount: { gt: 0 } },
     orderBy: { date: "asc" },
   });
 
@@ -78,7 +78,7 @@ export async function getSpendingForecast() {
   const changeText =
     trend === "stable"
       ? "roughly stable"
-      : `${trend} by ~$${changeAbs.toFixed(0)}/month`;
+      : `${trend} by ~€${changeAbs.toFixed(0)}/month`;
 
   return {
     forecast: {

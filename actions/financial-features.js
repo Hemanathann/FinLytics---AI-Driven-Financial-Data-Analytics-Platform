@@ -25,6 +25,7 @@ export async function getEmergencyFundData() {
       date: { gte: threeMonthsAgo },
       status: "COMPLETED",
       NOT: { category: "savings-goal-meta" },
+          amount: { gt: 0 },
     },
   });
 
@@ -233,7 +234,7 @@ export async function getSmartBudgetRecommendation() {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(`
-Based on monthly income of $${avgMonthlyIncome.toFixed(0)} and these spending averages: ${Object.entries(byCategory).map(([k, v]) => `${k}: €${v.toFixed(0)}`).join(", ")}.
+Based on monthly income of €${avgMonthlyIncome.toFixed(0)} and these spending averages: ${Object.entries(byCategory).map(([k, v]) => `${k}: €${v.toFixed(0)}`).join(", ")}.
 Give a 2-sentence smart budget recommendation. Be specific with numbers. No markdown.`);
     narrative = result.response.text().trim();
   } catch (e) { /* silent fail */ }

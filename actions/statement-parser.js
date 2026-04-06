@@ -8,7 +8,7 @@ const VALID_CATEGORIES = [
   "salary","freelance","investments","business","rental","other-income",
   "housing","transportation","groceries","utilities","entertainment",
   "food","shopping","healthcare","education","personal","travel",
-  "insurance","gifts","bills","currency-exchange","other-expense",
+  "insurance","gifts","bills","currency-exchange","other-expense","personal-transfer",
 ];
 
 // ── Global keyword map ─────────────────────────────────────────
@@ -607,6 +607,42 @@ const MERCHANT_MAP = [
   [/n26/i,             "N26",              "bills"],
   [/paypal/i,         "PayPal",           "bills"],
   [/stripe/i,         "Stripe",           "bills"],
+  // ── Irish / Indian restaurants ──────────────────────────
+  [/spice\s*village/i,        "Spice Village",        "food"],
+  [/poolside\s*caf/i,         "Poolside Cafe",        "food"],
+  [/pi\s*res?t/i,             "Pi Restaurant",        "food"],
+  [/sheela\s*palace/i,        "Sheela Palace",        "food"],
+  [/abrakebabra/i,             "Abrakebabra",          "food"],
+  [/eddie\s*rocket/i,         "Eddie Rocket's",       "food"],
+  [/chopped/i,                 "Chopped",              "food"],
+  [/saba\s*restaurant/i,      "Saba",                 "food"],
+  [/wagamama/i,                "Wagamama",             "food"],
+  [/itsa\s*bagel/i,           "Itsabagel",            "food"],
+  [/sprout/i,                  "Sprout",               "food"],
+  [/the\s*barge/i,            "The Barge",            "food"],
+  [/camden\s*kitchen/i,       "Camden Kitchen",       "food"],
+  [/dollard/i,                 "Dollard",              "food"],
+  [/avoca/i,                   "Avoca",                "food"],
+  [/bewley/i,                  "Bewley's",             "food"],
+  [/insomnia/i,                "Insomnia Coffee",      "food"],
+  [/supermac/i,                "Supermac's",           "food"],
+  [/mcdonalds|mcdonald/i,      "McDonald's",           "food"],
+  [/bunsen/i,                  "Bunsen",               "food"],
+  [/paulie'?s\s*pizza/i,     "Paulie's Pizza",       "food"],
+  [/burritos?\s*and/i,        "Burrito Bar",          "food"],
+  [/freshii/i,                 "Freshii",              "food"],
+  [/leon/i,                    "Leon",                 "food"],
+  [/pret/i,                    "Pret A Manger",        "food"],
+  [/grafton\s*barber/i,       "The Grafton Barber",   "personal"],
+  [/mobile\s*expert/i,        "Mobile Expert",        "shopping"],
+  [/tfi\s*leap|transport\s*for\s*ireland/i, "TFI / Leap Card", "transportation"],
+  [/flyefit/i,                 "FLYEfit",              "healthcare"],
+  [/anthropic/i,               "Anthropic (Claude)",   "bills"],
+  [/lyca\s*mobile/i,          "LycaMobile",           "bills"],
+  [/jupiter\s*ventures/i,     "Jupiter Ventures",     "bills"],
+  [/taptap/i,                  "Taptap Send",          "currency-exchange"],
+  [/eurasia\s*supermarket/i,  "Eurasia Supermarkets", "groceries"],
+  [/londis/i,                  "Londis",               "groceries"],
   // AIB / Irish bank common merchants
   [/property\s*management/i,  "Property Management",  "housing"],
   [/rtb\s*registration/i,     "RTB",                  "housing"],
@@ -693,6 +729,81 @@ function categorise(desc, type) {
   const lower = desc.toLowerCase();
   const clean = cleanDescription(desc);
 
+  // ── Pass 0: Pattern-based matching (highest precision) ──────────────────
+
+  // ── Income patterns ──────────────────────────────────────────────────
+  // Card refund / cashback = shopping income
+  if (type === "INCOME" && /refund|cashback|chargeback|return|credit\s*back/i.test(desc)) {
+    return { category: "other-income", confidence: "high", cleanName: `Refund: ${clean}` };
+  }
+  // Apple Pay top-up = loading money from your debit/credit card into Revolut
+  if (/apple\s*pay\s*top-?up/i.test(desc)) {
+    return { category: "other-income", confidence: "high", cleanName: "Apple Pay Top-up" };
+  }
+  // Revolut currency exchange
+  if (/exchanged\s+to\s+eur|exchanged\s+to\s+gbp|exchanged\s+to\s+usd|exchanged\s+from/i.test(desc)) {
+    return { category: "currency-exchange", confidence: "high", cleanName: "Revolut Exchange" };
+  }
+
+  // ── Expense: Bills & Subscriptions ───────────────────────────────────
+  if (/card\s*delivery\s*fee/i.test(desc)) {
+    return { category: "bills", confidence: "high", cleanName: "Card Delivery Fee" };
+  }
+  if (/lyca\s*mobile/i.test(desc)) {
+    return { category: "bills", confidence: "high", cleanName: "LycaMobile" };
+  }
+  if (/anthropic/i.test(desc)) {
+    return { category: "bills", confidence: "high", cleanName: "Anthropic (Claude)" };
+  }
+  if (/jupiter\s*ventures/i.test(desc)) {
+    return { category: "bills", confidence: "high", cleanName: "Jupiter Ventures (Rent)" };
+  }
+
+  // ── Currency exchange / international transfers ───────────────────────
+  if (/taptap\s*send/i.test(desc)) {
+    return { category: "currency-exchange", confidence: "high", cleanName: "Taptap Send" };
+  }
+  if (/western\s*union|moneygram|wise|remit|xoom|paysend|azimo/i.test(desc)) {
+    return { category: "currency-exchange", confidence: "high", cleanName: clean };
+  }
+
+  // ── Expense: ATM / cash withdrawal ───────────────────────────────────
+  if (/cash\s*withdrawal|atm\s*withdrawal/i.test(desc)) {
+    return { category: "other-expense", confidence: "high", cleanName: "Cash Withdrawal" };
+  }
+
+  // ── Personal transfers TO/FROM named people ─────────────────────────────
+  // Pattern: "Transfer to FIRSTNAME SURNAME" or "To Firstname Surname Surname"
+  // ── Personal transfers TO/FROM named people ─────────────────
+  // "Transfer to FIRSTNAME SURNAME" → personal-transfer (sent)
+  if (/^transfer\s+to\s+([A-Z][A-Za-z]+\s+){1,}/i.test(desc)) {
+    const personName = desc.replace(/^transfer\s+to\s+/i, "").trim()
+      .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    return { category: "personal-transfer", confidence: "high", cleanName: `Sent to ${personName}` };
+  }
+  if (/^to\s+[A-Z][a-z]+\s+[A-Z][a-z]+/i.test(desc) && type === "EXPENSE") {
+    const personName = desc.replace(/^to\s+/i, "").trim()
+      .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    return { category: "personal-transfer", confidence: "high", cleanName: `Sent to ${personName}` };
+  }
+  // "Transfer from FIRSTNAME SURNAME" → personal-transfer (received)
+  if (/^transfer\s+from\s+([A-Z][A-Za-z]+\s+){1,}/i.test(desc)) {
+    const personName = desc.replace(/^transfer\s+from\s+/i, "").trim()
+      .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    return { category: "personal-transfer", confidence: "high", cleanName: `Received from ${personName}` };
+  }
+  if (/^payment\s+from\s+/i.test(desc)) {
+    const personName = desc.replace(/^payment\s+from\s+/i, "").trim()
+      .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    return { category: "personal-transfer", confidence: "high", cleanName: `Received from ${personName}` };
+  }
+
+  // ── Expense: Restaurants (Irish/Indian specific) ──────────────────────
+  const RESTAURANT_RE = /spice\s*village|poolside\s*cafe|pi\s*res?t?au?rant|sheela\s*palace|mani\s*rest|indian\s*cuisine|kebab\s*house|chinese\s*rest|thai\s*rest|sushi\s*rest|ramen\s*bar|curry\s*house|biryani|tandoori|dal\s*makhani|butter\s*chicken|masala\s*zone|namaste\s*india|little\s*india|india\s*garden|punjab\s*rest|dosa\s*place|south\s*indian|north\s*indian|zaytoon|abrakebabra|fish\s*chips|chopsticks|china\s*express|imperial\s*chinese|the\s*winding\s*stair|the\s*porterhouse|rotisserie|baguette|sandwich\s*bar|mcdonald|burger.*king|kfc|five\s*guys|shake.*shack|nandos|wagamama|itsu|yo.*sushi|zizzi|insomnia\s*cof|costa\s*cof|starbucks|caffe\s*nero/i;
+  if (RESTAURANT_RE.test(desc)) {
+    return { category: "food", confidence: "high", cleanName: clean };
+  }
+
   // Pass 1: Exact merchant map match = high confidence
   // MERCHANT_MAP entries carry their own category as 3rd element (fixes Topaz→transportation etc.)
   for (const [pattern, name, merchantCat] of MERCHANT_MAP) {
@@ -718,10 +829,11 @@ function categorise(desc, type) {
     if (matched) return { category: cat, confidence: "low", cleanName: clean };
   }
 
+  // Fallback — everything gets a category, nothing returns undefined
   return {
     category: type === "INCOME" ? "other-income" : "other-expense",
     confidence: "low",
-    cleanName: clean,
+    cleanName: clean || desc.slice(0, 40) || "Unknown",
   };
 }
 
@@ -809,7 +921,9 @@ function parseCSV(text) {
     const hasDate   = /\bdate\b|posting date|txn date|value date|trans date|started date|completed date/i.test(l);
     const hasDesc   = /desc|detail|narr|particular|remark|reference|transaction details|tran desc/i.test(l);
     const hasAmount = /\bamount\b|\bcredit\b|\bdebit\b|withdrawal|deposit/i.test(l);
-    return hasDate && (hasDesc || hasAmount);
+    // Revolut: Type,Product,Started Date,Completed Date,Description,Amount,...
+    const isRevolutHeader = /type.*product.*date.*description.*amount/i.test(l);
+    return isRevolutHeader || (hasDate && (hasDesc || hasAmount));
   });
   if (hi === -1) throw new Error(`No header row found. Expected Date + Description/Amount columns. First line: "${(lines[0]||"").slice(0,80)}"`);
 
@@ -822,17 +936,27 @@ function parseCSV(text) {
     return acc;
   }, []);
 
+  // ── Detect if this is a Revolut CSV ──────────────────────────
+  // Revolut format: Type, Product, Started Date, Completed Date, Description, Amount, Fee, Currency, State, Balance
+  const isRevolut = hdrs.includes("product") && hdrs.includes("state") && hdrs.includes("fee");
+
   const c = {
-    date:    hdrs.findIndex((h) => /\bdate\b|posting date|txn date|value date|trans date|started date/i.test(h)),
-    desc:    descCols[0] ?? -1,  // primary description column
-    desc2:   descCols[1] ?? -1,  // AIB Description2
-    desc3:   descCols[2] ?? -1,  // AIB Description3
+    date:    hdrs.findIndex((h) => {
+      if (isRevolut) return h === "completed date"; // Revolut: use completed date
+      return /\bdate\b|posting date|txn date|value date|trans date|started date/i.test(h);
+    }),
+    desc:    descCols[0] ?? -1,
+    desc2:   descCols[1] ?? -1,
+    desc3:   descCols[2] ?? -1,
     debit:   hdrs.findIndex((h) => /\bdebit\b|withdrawal|\bdr\b/.test(h)),
     credit:  hdrs.findIndex((h) => /\bcredit\b|deposit|\bcr\b/.test(h)),
-    // Revolut uses "Type" with values CARD_PAYMENT / TRANSFER / TOPUP
     type:    hdrs.findIndex((h) => h === "type" || h === "dr/cr" || h === "cr/dr" || h === "tran type"),
     amount:  hdrs.findIndex((h) => /^amount$|^value$|^txn amount$|^transaction amount$/.test(h)),
     balance: hdrs.findIndex((h) => /^balance$|^running balance$/.test(h)),
+    // Revolut-specific columns
+    product: isRevolut ? hdrs.findIndex((h) => h === "product") : -1,
+    state:   isRevolut ? hdrs.findIndex((h) => h === "state")   : -1,
+    fee:     isRevolut ? hdrs.findIndex((h) => h === "fee")     : -1,
   };
 
   if (c.date === -1 || c.desc === -1)
@@ -886,23 +1010,83 @@ function parseCSV(text) {
       continue;
     }
 
+    // ── Revolut-specific processing ───────────────────────────────
+    if (isRevolut) {
+      // Skip non-completed transactions (REVERTED, DECLINED, PENDING)
+      const state = c.state >= 0 ? (cols[c.state] || "").trim().toUpperCase() : "COMPLETED";
+      if (state !== "COMPLETED") continue;
+
+      // Skip internal pocket transfers — these are NOT real income/expense
+      // They appear in BOTH Savings and Current product rows
+      // e.g. "To pocket EUR Common Cash from EUR" (Current→Savings)
+      // e.g. "Pocket Withdrawal" (Savings→Current)
+      const product = c.product >= 0 ? (cols[c.product] || "").trim() : "";
+      const rawDesc = desc.toLowerCase();
+      const isPocketTransfer =
+        rawDesc.includes("to pocket") ||
+        rawDesc.includes("pocket withdrawal") ||
+        rawDesc.includes("from pocket") ||
+        rawDesc.includes("common cash from eur") ||
+        rawDesc.includes("common cash from gbp") ||
+        rawDesc.includes("common cash from usd") ||
+        rawDesc.includes("dump from eur") ||     // "To pocket EUR Dump from EUR"
+        rawDesc.includes("dump from gbp") ||
+        rawDesc.includes("dump from usd") ||
+        (product === "Savings" && (rawDesc.includes("pocket") || rawDesc.includes("dump")));
+      if (isPocketTransfer) continue;
+
+      // Use Amount sign — the ONLY reliable method for Revolut
+      // Revolut Amount column: negative = money leaving, positive = money arriving
+      const rawAmt  = parseAmount(cols[c.amount] || "");
+      const feeAmt  = c.fee >= 0 ? Math.abs(parseAmount(cols[c.fee] || "")) : 0;
+      // Allow zero-amount rows (e.g. Irish Stamp Duty) — they appear in history
+      // Only skip if truly no amount column found
+      if (rawAmt === 0 && c.amount < 0) continue;
+
+      let type, amount;
+      if (rawAmt > 0) {
+        type = "INCOME";
+        // Fee on positive (e.g. Wise transfer: received minus fee)
+        amount = rawAmt - feeAmt;
+        if (amount <= 0) amount = rawAmt; // safety: don't go negative
+      } else {
+        type = "EXPENSE";
+        // Fee column is separate from Amount — only add if truly extra
+        // Most Revolut fees are already baked into Amount column
+        amount = Math.abs(rawAmt);
+        // Only add fee when it's clearly a separate charge (e.g. ATM)
+        if (feeAmt > 0 && feeAmt !== Math.abs(rawAmt)) amount += feeAmt;
+      }
+
+      const date = parseDate(dateStr);
+      if (isNaN(date.getTime())) continue;
+      const result = categorise(desc, type);
+      // Capture the running balance from this row for final balance calculation
+      const rowBalance = c.balance >= 0 ? parseFloat(cols[c.balance] || "0") : null;
+
+      txns.push({
+        date,
+        description:  desc.slice(0, 200),
+        cleanName:    result.cleanName,
+        amount:       parseFloat(amount.toFixed(2)),
+        type,
+        category:     result.category,
+        confidence:   result.confidence,
+        balance:      rowBalance, // running balance at this point
+      });
+      continue; // skip general bank logic below
+    }
+
+    // ── Standard bank processing (AIB, HDFC, SBI etc.) ───────────
     const th = c.type >= 0 ? (cols[c.type] || "").trim().toUpperCase() : "";
     let type, amount;
 
-    // Revolut-style type column
-    const REVOLUT_INCOME = ["TOPUP","TRANSFER","CASHBACK","REFUND","EXCHANGE"];
-    const REVOLUT_EXPENSE = ["CARD_PAYMENT","ATM","FEE","CHARGE"];
-
-    if (REVOLUT_EXPENSE.some(r => th.includes(r))) {
-      type = "EXPENSE"; amount = Math.abs(debit || credit);
-    } else if (REVOLUT_INCOME.some(r => th.includes(r))) {
-      type = "INCOME"; amount = Math.abs(credit || debit);
-    } else if (th === "CR" || th === "C" || credit > 0) {
+    // DR/CR style type column (standard banks)
+    if (th === "CR" || th === "C" || credit > 0) {
       type = "INCOME";  amount = credit || debit;
     } else if (th === "DR" || th === "D" || debit > 0) {
       type = "EXPENSE"; amount = debit || credit;
     } else {
-      // Extended income keyword fallback
       const iw = [
         // Salary & employment
         "salary","payroll","wages","pay credit","sal cr","sal credit","neft salary",
@@ -929,12 +1113,13 @@ function parseCSV(text) {
       amount = debit || credit;
     }
 
-    if (!amount || amount <= 0) continue;
+    if (amount < 0) continue; // only skip truly negative (shouldn't happen after abs())
 
     const date = parseDate(dateStr);
     if (isNaN(date.getTime())) continue;
 
     const result = categorise(desc, type);
+    const rowBal = c.balance >= 0 ? parseFloat((cols[c.balance] || "").replace(/[,€$£₹]/g,"")) || null : null;
     txns.push({
       date,
       description:  desc.slice(0, 200),
@@ -943,10 +1128,41 @@ function parseCSV(text) {
       type,
       category:     result.category,
       confidence:   result.confidence,
+      balance:      rowBal,
     });
   }
 
-  return txns;
+  // Calculate closing balance for Revolut:
+  // Track last balance seen per product (Current + Savings) and sum them
+  // This gives the true total Revolut balance at end of statement
+  let finalBalance = null;
+  if (isRevolut) {
+    const lastBalByProduct = {};
+    // Scan ALL completed rows (including pocket) to track per-product balance
+    for (let i = hi + 1; i < lines.length; i++) {
+      const cols2 = parseRow(lines[i], delimiter);
+      if (!cols2 || cols2.length < 5) continue;
+      const product2 = c.product >= 0 ? (cols2[c.product] || "").trim() : "";
+      const bal2     = c.balance >= 0 ? parseFloat((cols2[c.balance] || "0").replace(/[,€$£₹]/g,"")) : null;
+      const state2   = c.state >= 0 ? (cols2[c.state] || "").trim().toUpperCase() : "COMPLETED";
+      if (state2 === "COMPLETED" && product2 && bal2 !== null && !isNaN(bal2)) {
+        lastBalByProduct[product2] = bal2;
+      }
+    }
+    // Sum all product balances = true total Revolut balance
+    const productBalances = Object.values(lastBalByProduct);
+    if (productBalances.length > 0) {
+      finalBalance = productBalances.reduce((s, b) => s + b, 0);
+    }
+  } else if (c.balance >= 0 && txns.length > 0) {
+    // For other banks: use last running balance
+    const lastWithBal = txns.filter(t => t.balance !== null && t.balance !== undefined);
+    if (lastWithBal.length > 0) {
+      finalBalance = lastWithBal[lastWithBal.length - 1].balance;
+    }
+  }
+
+  return { transactions: txns, finalBalance };
 }
 
 export async function parseStatement(csvText) {
@@ -957,19 +1173,23 @@ export async function parseStatement(csvText) {
     if (typeof csvText !== "string" || csvText.length < 10)
       throw new Error("Empty or invalid file received.");
 
-    const transactions = parseCSV(csvText);
+    const result = parseCSV(csvText);
+    const transactions = result.transactions || result; // backward compat
+    const finalBalance = result.finalBalance ?? null;
 
-    if (transactions.length === 0)
+    if (!transactions || transactions.length === 0)
       throw new Error("No transactions found. Make sure your CSV has Date, Description, and Debit/Credit columns.");
 
-    return transactions;
+    // Return both transactions and the closing balance from the CSV
+    // finalBalance is the exact balance at end of statement period (Revolut uses Balance column)
+    return { transactions, finalBalance };
   } catch (err) {
     console.error("parseStatement error:", err.message);
     throw new Error(err.message);
   }
 }
 
-export async function bulkImportTransactions(transactions, accountId) {
+export async function bulkImportTransactions(transactions, accountId, options = {}) {
   try {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
@@ -980,6 +1200,7 @@ export async function bulkImportTransactions(transactions, accountId) {
     const account = await db.account.findUnique({ where: { id: accountId, userId: user.id } });
     if (!account) throw new Error("Account not found");
 
+    // Balance delta = net of transactions being imported
     const balanceDelta = transactions.reduce(
       (sum, t) => sum + (t.type === "INCOME" ? t.amount : -t.amount), 0
     );
@@ -1038,23 +1259,51 @@ export async function bulkImportTransactions(transactions, accountId) {
       })),
     });
 
-    await db.account.update({
-      where: { id: accountId },
-      data:  { balance: { increment: insertDelta } },
-    });
+    // Update account balance
+    // If a closing balance is provided (from CSV Balance column), use it as the source of truth
+    // Otherwise, increment by the net of imported transactions
+    if (options.closingBalance !== undefined && options.closingBalance !== null) {
+      await db.account.update({
+        where: { id: accountId },
+        data:  { balance: options.closingBalance },
+      });
+    } else {
+      await db.account.update({
+        where: { id: accountId },
+        data:  { balance: { increment: insertDelta } },
+      });
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/analytics");
     revalidatePath("/");
 
+    const importedIncome  = parseFloat(toInsert.filter(t=>t.type==="INCOME").reduce((s,t)=>s+t.amount,0).toFixed(2));
+    const importedExpense = parseFloat(toInsert.filter(t=>t.type==="EXPENSE").reduce((s,t)=>s+t.amount,0).toFixed(2));
+
+    // Server-side integrity log
+    console.log(`[FinLytics] Inserted: ${toInsert.length} | Duplicates skipped: ${skipped.length}`);
+    console.log(`[FinLytics] Income: €${importedIncome.toFixed(2)} | Expense: €${importedExpense.toFixed(2)} | Net: €${(importedIncome-importedExpense).toFixed(2)}`);
+
     return {
-      success:          true,
-      count:            toInsert.length,
-      skipped:          skipped.length,
+      success:         true,
+      count:           toInsert.length,
+      total:           transactions.length,
+      skipped:         skipped.length,
+      alreadyImported: toInsert.length === 0,
       lowConfidence,
       categoryBreakdown,
-      income:  toInsert.filter(t=>t.type==="INCOME").reduce((s,t)=>s+t.amount,0),
-      expense: toInsert.filter(t=>t.type==="EXPENSE").reduce((s,t)=>s+t.amount,0),
+      income:          importedIncome,
+      expense:         importedExpense,
+      net:             parseFloat((importedIncome - importedExpense).toFixed(2)),
+      validation: {
+        parsed:       transactions.length,
+        inserted:     toInsert.length,
+        duplicates:   skipped.length,
+        incomeRows:   toInsert.filter(t=>t.type==="INCOME").length,
+        expenseRows:  toInsert.filter(t=>t.type==="EXPENSE").length,
+        lowConfidence,
+      },
     };
   } catch (err) {
     console.error("bulkImport error:", err.message);

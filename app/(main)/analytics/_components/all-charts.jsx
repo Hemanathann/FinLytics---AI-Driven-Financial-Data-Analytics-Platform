@@ -224,18 +224,24 @@ export function MonthlyOverviewChart({ monthlySummary }) {
             </BarChart>
           )}
         </ResponsiveContainer>
-        {/* Quick insight strip */}
+        {/* Quick insight strip — shows PREVIOUS complete month + current month */}
         <div className="flex gap-2 mt-4 pt-3 border-t border-border/40 flex-wrap">
-          {monthlySummary.slice(-1).map((m) => [
-            { label: "Last month income", val: fmt(m.income), col: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
-            { label: "Last month expense", val: fmt(m.expense), col: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/40" },
-            { label: "Net balance", val: `${m.net >= 0 ? "+" : ""}${fmt(m.net)}`, col: m.net >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400", bg: "bg-blue-50 dark:bg-blue-950/40" },
-          ].map((s) => (
-            <div key={s.label} className={cn("px-3 py-2 rounded-xl flex-1 min-w-[100px]", s.bg)}>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{s.label}</p>
-              <p className={cn("text-sm font-bold mt-0.5 tabular-nums", s.col)}>{s.val}</p>
-            </div>
-          )))}
+          {(() => {
+            // slice(-2,-1) = previous full month; slice(-1) = current (possibly partial) month
+            const prev = monthlySummary.slice(-2, -1)[0];
+            const curr = monthlySummary.slice(-1)[0];
+            return [
+              { label: "Last month income",  val: fmt(prev?.income  ?? 0), col: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+              { label: "Last month expense",  val: fmt(prev?.expense ?? 0), col: "text-red-600 dark:text-red-400",         bg: "bg-red-50 dark:bg-red-950/40" },
+              { label: "Last month net",      val: `${(prev?.net ?? 0) >= 0 ? "+" : ""}${fmt(prev?.net ?? 0)}`, col: (prev?.net ?? 0) >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400", bg: "bg-blue-50 dark:bg-blue-950/40" },
+              { label: "This month expense",  val: fmt(curr?.expense ?? 0), col: "text-orange-600 dark:text-orange-400",   bg: "bg-orange-50 dark:bg-orange-950/40" },
+            ].map((s) => (
+              <div key={s.label} className={cn("px-3 py-2 rounded-xl flex-1 min-w-[100px]", s.bg)}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{s.label}</p>
+                <p className={cn("text-sm font-bold mt-0.5 tabular-nums", s.col)}>{s.val}</p>
+              </div>
+            ));
+          })()}
         </div>
       </CardContent>
     </Card>

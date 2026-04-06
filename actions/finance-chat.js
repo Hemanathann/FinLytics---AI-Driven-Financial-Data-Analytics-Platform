@@ -2,12 +2,33 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { subMonths, startOfMonth, format } from "date-fns";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// ── Groq API helper — free, fast, no SDK needed ───────────────
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL   = "llama-3.3-70b-versatile"; // free, 6000 req/day
 
-// Rule-based fallback answers — works even when Gemini is rate-limited
+async function callGroq(messages, maxTokens = 800) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not set in .env.local");
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model:       GROQ_MODEL,
+      messages,
+      max_tokens:  maxTokens,
+      temperature: 0.7,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq API error ${res.status}: ${err.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
+// Rule-based fallback answers — works even when Groq is unavailable
 function ruleBased(message, data) {
   const msg = message.toLowerCase();
   const { totalIncome, totalExpense, topCat, catMap, budget, txnCount, savingsRate } = data;
@@ -16,29 +37,29 @@ function ruleBased(message, data) {
   if (msg.includes("overspend") || msg.includes("biggest expense") || msg.includes("top category")) {
     if (!topCat) return "No expense data available yet. Import a bank statement to get insights.";
     const pct = totalExpense > 0 ? ((catMap[topCat] / totalExpense) * 100).toFixed(0) : 0;
-    return `Your biggest expense category is **${topCat}** at $${catMap[topCat].toFixed(2)} (${pct}% of total expenses over the last 3 months).\n\nTop 3 categories:\n${Object.entries(catMap).sort(([,a],[,b])=>b-a).slice(0,3).map(([c,a],i)=>`${i+1}. ${c}: $${a.toFixed(2)}`).join("\n")}`;
+    return `Your biggest expense category is **${topCat}** at €${catMap[topCat].toFixed(2)} (${pct}% of total expenses over the last 3 months).\n\nTop 3 categories:\n${Object.entries(catMap).sort(([,a],[,b])=>b-a).slice(0,3).map(([c,a],i)=>`${i+1}. ${c}: €${a.toFixed(2)}`).join("\n")}`;
   }
   if (msg.includes("savings rate") || msg.includes("saving rate")) {
-    return `Your savings rate over the last 3 months is **${savingsRate}%**.\n\n• Total income: $${totalIncome.toFixed(2)}\n• Total expenses: $${totalExpense.toFixed(2)}\n• Net saved: $${net.toFixed(2)}\n\n${savingsRate >= 20 ? "Great job — you're above the recommended 20% savings rate." : "Aim for at least 20% savings rate. Try reducing your top spending categories."}`;
+    return `Your savings rate over the last 3 months is **${savingsRate}%**.\n\n• Total income: €${totalIncome.toFixed(2)}\n• Total expenses: €${totalExpense.toFixed(2)}\n• Net saved: €${net.toFixed(2)}\n\n${savingsRate >= 20 ? "Great job — you're above the recommended 20% savings rate." : "Aim for at least 20% savings rate. Try reducing your top spending categories."}`;
   }
   if (msg.includes("summarise") || msg.includes("summary") || msg.includes("overview")) {
-    return `**Financial summary — last 3 months:**\n\n• Total income: $${totalIncome.toFixed(2)}\n• Total expenses: $${totalExpense.toFixed(2)}\n• Net savings: $${net.toFixed(2)}\n• Savings rate: ${savingsRate}%\n• Transactions: ${txnCount}\n• Top spending: ${topCat || "N/A"}${budget ? `\n• Monthly budget: $${budget}` : ""}`;
+    return `**Financial summary — last 3 months:**\n\n• Total income: €${totalIncome.toFixed(2)}\n• Total expenses: €${totalExpense.toFixed(2)}\n• Net savings: €${net.toFixed(2)}\n• Savings rate: ${savingsRate}%\n• Transactions: ${txnCount}\n• Top spending: ${topCat || "N/A"}${budget ? `\n• Monthly budget: €${budget}` : ""}`;
   }
   if (msg.includes("budget")) {
     if (!budget) return "You haven't set a monthly budget yet. Go to the dashboard and set one to track your spending against a target.";
     const monthlyAvg = totalExpense / 3;
     const diff = budget - monthlyAvg;
-    return `Your monthly budget is **$${budget}**.\n\n• Average monthly spend: $${monthlyAvg.toFixed(2)}\n• ${diff >= 0 ? `Under budget by $${diff.toFixed(2)}/month ✅` : `Over budget by $${Math.abs(diff).toFixed(2)}/month ⚠️`}`;
+    return `Your monthly budget is **€${budget}**.\n\n• Average monthly spend: €${monthlyAvg.toFixed(2)}\n• ${diff >= 0 ? `Under budget by €${diff.toFixed(2)}/month ✅` : `Over budget by €${Math.abs(diff).toFixed(2)}/month ⚠️`}`;
   }
   if (msg.includes("save more") || msg.includes("cut") || msg.includes("reduce")) {
     const sorted = Object.entries(catMap).sort(([,a],[,b])=>b-a).slice(0,3);
-    return `To save more money, focus on your top spending categories:\n\n${sorted.map(([c,a],i)=>`${i+1}. **${c}**: $${a.toFixed(2)} over 3 months ($${(a/3).toFixed(2)}/month)`).join("\n")}\n\nEven cutting 10-15% from each could save $${(sorted.reduce((s,[,a])=>s+a,0)*0.12/3).toFixed(0)}/month.`;
+    return `To save more money, focus on your top spending categories:\n\n${sorted.map(([c,a],i)=>`${i+1}. **${c}**: €${a.toFixed(2)} over 3 months (€${(a/3).toFixed(2)}/month)`).join("\n")}\n\nEven cutting 10-15% from each could save €${(sorted.reduce((s,[,a])=>s+a,0)*0.12/3).toFixed(0)}/month.`;
   }
   if (msg.includes("forecast") || msg.includes("next month") || msg.includes("predict")) {
     const monthlyAvg = totalExpense / 3;
-    return `Based on your last 3 months average, I forecast you'll spend around **$${monthlyAvg.toFixed(2)}** next month.\n\n• Current monthly average: $${monthlyAvg.toFixed(2)}\n• If you reduce by 10%: $${(monthlyAvg * 0.9).toFixed(2)}\n• If you reduce by 20%: $${(monthlyAvg * 0.8).toFixed(2)}`;
+    return `Based on your last 3 months average, I forecast you'll spend around **€${monthlyAvg.toFixed(2)}** next month.\n\n• Current monthly average: €${monthlyAvg.toFixed(2)}\n• If you reduce by 10%: €${(monthlyAvg * 0.9).toFixed(2)}\n• If you reduce by 20%: €${(monthlyAvg * 0.8).toFixed(2)}`;
   }
-  return null; // No rule matched — let Gemini handle it
+  return null; // No rule matched — let Groq handle it
 }
 
 export async function chatWithFinanceAI(message, history = []) {
@@ -82,22 +103,22 @@ export async function chatWithFinanceAI(message, history = []) {
     });
     const topCat = Object.entries(catMap).sort(([,a],[,b])=>b-a)[0]?.[0] || null;
     const topCats = Object.entries(catMap).sort(([,a],[,b])=>b-a).slice(0,6)
-      .map(([c,a]) => `${c}: $${a.toFixed(2)}`).join(", ");
+      .map(([c,a]) => `${c}: €${a.toFixed(2)}`).join(", ");
 
     const ruleData = { totalIncome, totalExpense, topCat, catMap, budget, txnCount: serialized.length, savingsRate };
 
     // ── Try rule-based first (instant, no API call) ───────────
     const ruleAnswer = ruleBased(message, ruleData);
 
-    // ── Try Gemini with fallback ──────────────────────────────
+    // ── Try Groq with fallback ─────────────────────────────────
     const systemPrompt = `You are FinLytics AI, a personal finance advisor with access to the user's real transaction data from the last 3 months.
 
 FINANCIAL SUMMARY:
-- Total Income: $${totalIncome.toFixed(2)} ($${(totalIncome/3).toFixed(2)}/month avg)
-- Total Expenses: $${totalExpense.toFixed(2)} ($${(totalExpense/3).toFixed(2)}/month avg)
-- Net Savings: $${(totalIncome - totalExpense).toFixed(2)}
+- Total Income: €${totalIncome.toFixed(2)} (€${(totalIncome/3).toFixed(2)}/month avg)
+- Total Expenses: €${totalExpense.toFixed(2)} (€${(totalExpense/3).toFixed(2)}/month avg)
+- Net Savings: €${(totalIncome - totalExpense).toFixed(2)}
 - Savings Rate: ${savingsRate}%
-- Monthly Budget: ${budget ? `$${budget}` : "Not set"}
+- Monthly Budget: ${budget ? `€${budget}` : "Not set"}
 - Total Transactions: ${serialized.length}
 - Top Spending Categories: ${topCats}
 
@@ -112,38 +133,27 @@ INSTRUCTIONS:
 - If you cannot answer from the data, say so honestly`;
 
     try {
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash-001",
-        generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
-      });
-
+      // Build conversation history for Groq (OpenAI-compatible format)
       const cleanHistory = history
         .filter(m => m.content?.trim() && !m.isWelcome && !m.isError)
         .slice(-8)
-        .map(m => ({
-          role:  m.role === "user" ? "user" : "model",
-          parts: [{ text: m.content }],
-        }));
+        .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }));
 
-      const chat = model.startChat({
-        history: [
-          { role: "user",  parts: [{ text: systemPrompt }] },
-          { role: "model", parts: [{ text: "Understood. I have full access to your financial data and I'm ready to give personalised insights." }] },
-          ...cleanHistory,
-        ],
-      });
+      const messages = [
+        { role: "system",    content: systemPrompt },
+        ...cleanHistory,
+        { role: "user",      content: message },
+      ];
 
-      const result = await chat.sendMessage(message);
-      return result.response.text();
+      return await callGroq(messages, 800);
 
-    } catch (geminiErr) {
-      // If Gemini fails (rate limit, quota, network) use rule-based answer
-      if (ruleAnswer) return ruleAnswer + "\n\n*Note: AI insights temporarily unavailable — showing rule-based analysis.*";
-
-      if (geminiErr.message?.includes("429") || geminiErr.message?.includes("quota")) {
-        throw new Error("AI quota reached for today. Try again tomorrow, or ask about spending, budget, savings rate, or top categories — those work offline.");
+    } catch (groqErr) {
+      // If Groq fails, use rule-based answer
+      if (ruleAnswer) return ruleAnswer + "\n\n*Note: AI temporarily unavailable — showing rule-based analysis.*";
+      if (groqErr.message?.includes("429") || groqErr.message?.includes("quota")) {
+        throw new Error("AI quota reached. Ask about: spending, budget, savings rate, or top categories — those work offline.");
       }
-      throw geminiErr;
+      throw groqErr;
     }
 
   } catch (err) {

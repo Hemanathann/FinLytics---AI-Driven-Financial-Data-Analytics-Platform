@@ -687,7 +687,7 @@ export function AnalyticsClient({
                 </div>
                 <div>
                   <p className="text-sm font-bold">AI Financial Narrative</p>
-                  <p className="text-[11px] text-slate-400">Powered by Gemini 1.5 Flash</p>
+                  <p className="text-[11px] text-slate-400">Powered by Groq · Llama 3.3</p>
                 </div>
                 <span className="ml-auto w-2 h-2 rounded-full bg-teal-400 animate-pulse"/>
               </div>
@@ -742,7 +742,7 @@ export function AnalyticsClient({
                     </div>
                     {s.saving > 0 && (
                       <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 shrink-0">
-                        +{fmt(s.saving)}/mo
+                        +${s.saving.toFixed(0)}/mo
                       </span>
                     )}
                   </div>
@@ -772,7 +772,7 @@ export function AnalyticsClient({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold capitalize text-slate-700 dark:text-slate-300">{r.category}</p>
-                        <p className="text-[10px] text-slate-400">Current: {fmt(r.current ?? 0)} · Recommended: {fmt(r.recommended ?? 0)}</p>
+                        <p className="text-[10px] text-slate-400">Current: ${r.current?.toFixed(0)} · Recommended: ${r.recommended?.toFixed(0)}</p>
                       </div>
                       <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0",
                         over?"bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300":
@@ -809,7 +809,7 @@ export function AnalyticsClient({
               {emergencyFundData.monthsCovered < 3 && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0"/>
-                  Aim for 3–6 months of expenses. Save {fmt((emergencyFundData.targetAmount||0)-(emergencyFundData.currentSavings||0))} more to reach the minimum target.
+                  Aim for 3–6 months of expenses. Save ${((emergencyFundData.targetAmount||0)-(emergencyFundData.currentSavings||0)).toFixed(0)} more to reach the minimum target.
                 </div>
               )}
             </Card>

@@ -220,7 +220,7 @@ export function FinanceChatbot() {
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse" />
-                <p className="text-[11px] text-white/65">Online · Gemini 1.5 Flash</p>
+                <p className="text-[11px] text-white/65">Online · GROQ </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
